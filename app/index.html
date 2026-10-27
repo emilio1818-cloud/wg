@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="de" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+    <title>Nestly – Die WG-App</title>
+    <meta name="description" content="Nestly organisiert eure WG: Ausgaben fair teilen, Putzplan mit Rotation, gemeinsame Einkaufslisten, Verträge mit Kündigungsfristen, Fixkosten und Kalender. Kostenlos, ohne Werbung." />
+    <meta name="theme-color" content="#f4f3f9" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Nestly" />
+    <meta property="og:title" content="Nestly – Die WG-App" />
+    <meta property="og:description" content="Geld, Putzplan, Einkauf und Verträge – endlich an einem Ort." />
+    <meta property="og:image" content="icons/og-image.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="styles.css?v=__VERSION__" />
+    <script>
+      (function () {
+        try {
+          var p = JSON.parse(localStorage.getItem('nestly:prefs') || '{}');
+          var dark = p.theme === 'dark' || ((!p.theme || p.theme === 'system') && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#0b0a11' : '#f4f3f9');
+        } catch (e) {}
+      })();
+    </script>
+    <script src="config.js?v=__VERSION__"></script>
+    <!--MODULEPRELOAD-->
+    <script type="module" src="js/app/src/main.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div class="splash">
+        <div class="logo-mark">
+          <svg width="46" height="46" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <path d="M24 7.5 8.5 19.2c-.95.72-1.5 1.84-1.5 3.03V37a4 4 0 0 0 4 4h26a4 4 0 0 0 4-4V22.23c0-1.19-.55-2.31-1.5-3.03L24 7.5Z" fill="#fff" />
+            <path d="M15.5 30.5c2.2 3.2 5.2 4.8 8.5 4.8s6.3-1.6 8.5-4.8" stroke="#8a55f2" stroke-width="3.6" stroke-linecap="round" />
+            <circle cx="18" cy="24.5" r="2.4" fill="#8a55f2" />
+            <circle cx="30" cy="24.5" r="2.4" fill="#8a55f2" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    <noscript>Nestly benötigt JavaScript. / Nestly needs JavaScript.</noscript>
+  </body>
+</html>

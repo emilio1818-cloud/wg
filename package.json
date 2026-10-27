@@ -1,0 +1,26 @@
+{
+  "name": "nestly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Nestly – die All-in-one App für WGs: Geld teilen, Putzplan, Einkaufslisten, Verträge, Fixkosten und Kalender.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "start": "node server/src/index.ts",
+    "dev": "node scripts/dev.mjs",
+    "typecheck": "tsc -p core && tsc -p server && tsc -p app --noEmit",
+    "test": "node --test --test-reporter=spec \"core/test/*.test.ts\" \"server/test/*.test.ts\" \"app/test/*.test.ts\"",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.mjs\"",
+    "icons": "node scripts/icons.mjs",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^6.0.2"
+  }
+}

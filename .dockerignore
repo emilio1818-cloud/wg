@@ -1,0 +1,8 @@
+node_modules
+.git
+server/data
+tests/e2e/screenshots
+coverage
+*.log
+*.db
+*.db-*
