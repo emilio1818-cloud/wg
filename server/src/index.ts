@@ -9,6 +9,13 @@
  *   CORS_ORIGIN  Access-Control-Allow-Origin (default *)
  *   TRUST_PROXY  `1` → client IP from the first X-Forwarded-For entry
  *   RATE_LIMIT   `0` → disable per-IP rate limiting
+ *   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY
+ *                Web Push key pair, base64url (65-byte uncompressed P-256 point /
+ *                32-byte private scalar, as printed by `web-push generate-vapid-keys`).
+ *                Default: generated on first start and stored in the database.
+ *   VAPID_SUBJECT  contact for push services (default mailto:push@nestly.app)
+ *   REMINDERS    `0` → no daily push reminders
+ *   PUSH_ALLOW_ANY_HOST  `1` → accept push endpoints outside the known push services
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -35,13 +42,30 @@ if (staticDir && !fs.existsSync(staticDir)) {
   staticDir = null;
 }
 
-const app = createApp({
-  dbPath,
-  staticDir,
-  corsOrigin: env.CORS_ORIGIN || '*',
-  trustProxy: env.TRUST_PROXY === '1',
-  rateLimit: env.RATE_LIMIT !== '0',
-});
+const vapidPublicKey = env.VAPID_PUBLIC_KEY?.trim();
+const vapidPrivateKey = env.VAPID_PRIVATE_KEY?.trim();
+if (!vapidPublicKey !== !vapidPrivateKey) {
+  console.error('Set both VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or neither');
+  process.exit(1);
+}
+
+let app: ReturnType<typeof createApp>;
+try {
+  app = createApp({
+    dbPath,
+    staticDir,
+    corsOrigin: env.CORS_ORIGIN || '*',
+    trustProxy: env.TRUST_PROXY === '1',
+    rateLimit: env.RATE_LIMIT !== '0',
+    reminders: env.REMINDERS !== '0',
+    pushAnyHost: env.PUSH_ALLOW_ANY_HOST === '1',
+    pushSubject: env.VAPID_SUBJECT || undefined,
+    vapidKeys: vapidPublicKey && vapidPrivateKey ? { publicKey: vapidPublicKey, privateKey: vapidPrivateKey } : null,
+  });
+} catch (err) {
+  console.error(`Could not start: ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+}
 
 app.server.on('error', (err) => {
   console.error(`Server error: ${err.message}`);

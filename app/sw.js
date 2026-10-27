@@ -67,17 +67,17 @@ self.addEventListener('push', (event) => {
     data = { body: event.data ? event.data.text() : '' };
   }
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      // The open app already updates live; don't double-notify the person looking at it.
-      if (list.some((c) => c.focused)) return;
-      return self.registration.showNotification(data.title || 'Nestly', {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) =>
+      // Browsers require a visible notification for every push; stay quiet if the app is open.
+      self.registration.showNotification(data.title || 'Nestly', {
         body: data.body || '',
         tag: data.tag,
         icon: 'icons/icon-192.png',
         badge: 'icons/badge-96.png',
+        silent: list.some((c) => c.focused),
         data: { url: data.url || './#/activity' },
-      });
-    }),
+      }),
+    ),
   );
 });
 

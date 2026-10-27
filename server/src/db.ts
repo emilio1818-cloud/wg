@@ -34,6 +34,24 @@ CREATE TABLE IF NOT EXISTS records (
   PRIMARY KEY (household_id, collection, id)
 );
 CREATE INDEX IF NOT EXISTS records_seq ON records (household_id, seq);
+
+CREATE TABLE IF NOT EXISTS meta (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  endpoint      TEXT PRIMARY KEY,
+  household_id  TEXT NOT NULL REFERENCES households(id),
+  member_id     TEXT NOT NULL,
+  token_hash    TEXT NOT NULL,
+  p256dh        TEXT NOT NULL,
+  auth          TEXT NOT NULL,
+  lang          TEXT NOT NULL DEFAULT 'de',
+  last_reminder TEXT,
+  created_at    INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_subscriptions_household ON push_subscriptions (household_id);
 `;
 
 export interface Membership {
@@ -51,6 +69,22 @@ export interface StoredRecord {
   id: string;
   data: Record<string, unknown>;
 }
+
+/** A Web Push subscription bound to the device (token) that registered it. */
+export interface PushSubscriptionRow {
+  endpoint: string;
+  householdId: string;
+  memberId: string;
+  tokenHash: string;
+  p256dh: string;
+  auth: string;
+  lang: string;
+  /** Local date (`YYYY-MM-DD`) of the last daily reminder check, if any. */
+  lastReminder: string | null;
+  createdAt: number;
+}
+
+export type NewPushSubscription = Omit<PushSubscriptionRow, 'lastReminder' | 'createdAt'>;
 
 /**
  * Last-write-wins: the incoming version replaces the stored one if it is newer,
@@ -104,12 +138,63 @@ function prepareStatements(db: DatabaseSync) {
     since: prepare(`
       SELECT collection, id, data, CAST(updated_at AS REAL) AS u, seq FROM records
       WHERE household_id = ? AND seq > ? ORDER BY seq LIMIT ?`),
+    getMeta: prepare('SELECT value FROM meta WHERE key = ?'),
+    setMeta: prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value'),
+    // Re-registering the same endpoint (every app start) keeps last_reminder,
+    // unless the subscription moves to another member.
+    upsertPush: prepare(`
+      INSERT INTO push_subscriptions (endpoint, household_id, member_id, token_hash, p256dh, auth, lang, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (endpoint) DO UPDATE SET
+        last_reminder = CASE
+          WHEN push_subscriptions.household_id = excluded.household_id AND push_subscriptions.member_id = excluded.member_id
+          THEN push_subscriptions.last_reminder END,
+        household_id = excluded.household_id, member_id = excluded.member_id, token_hash = excluded.token_hash,
+        p256dh = excluded.p256dh, auth = excluded.auth, lang = excluded.lang`),
+    deletePush: prepare('DELETE FROM push_subscriptions WHERE endpoint = ?'),
+    deletePushInHousehold: prepare('DELETE FROM push_subscriptions WHERE endpoint = ? AND household_id = ?'),
+    deletePushForToken: prepare('DELETE FROM push_subscriptions WHERE token_hash = ?'),
+    deletePushForMember: prepare('DELETE FROM push_subscriptions WHERE household_id = ? AND member_id = ?'),
+    // Only subscriptions whose device token is still valid.
+    pushForHousehold: prepare(`
+      SELECT p.* FROM push_subscriptions p
+      JOIN memberships m ON m.token_hash = p.token_hash AND m.revoked_at IS NULL
+      WHERE p.household_id = ?`),
+    allPush: prepare(`
+      SELECT p.* FROM push_subscriptions p
+      JOIN memberships m ON m.token_hash = p.token_hash AND m.revoked_at IS NULL
+      ORDER BY p.household_id`),
+    setLastReminder: prepare('UPDATE push_subscriptions SET last_reminder = ? WHERE endpoint = ?'),
   };
 }
 
 type Statements = ReturnType<typeof prepareStatements>;
 
 type RecordRow = { collection: CollectionName; id: string; data: string; u: number; seq: number };
+
+type PushRow = {
+  endpoint: string;
+  household_id: string;
+  member_id: string;
+  token_hash: string;
+  p256dh: string;
+  auth: string;
+  lang: string;
+  last_reminder: string | null;
+  created_at: number;
+};
+
+const toPushSubscription = (r: PushRow): PushSubscriptionRow => ({
+  endpoint: r.endpoint,
+  householdId: r.household_id,
+  memberId: r.member_id,
+  tokenHash: r.token_hash,
+  p256dh: r.p256dh,
+  auth: r.auth,
+  lang: r.lang,
+  lastReminder: r.last_reminder,
+  createdAt: r.created_at,
+});
 
 export class Store {
   private readonly db: DatabaseSync;
@@ -219,11 +304,19 @@ export class Store {
     return rows.map((r) => ({ id: r.id, data: JSON.parse(r.data) }));
   }
 
+  /** Current data of every record in a collection, without tombstones (`deleted: true`). */
+  liveRecords(householdId: string, collection: CollectionName): Record<string, unknown>[] {
+    return this.records(householdId, collection)
+      .map((r) => r.data)
+      .filter((data) => data.deleted !== true);
+  }
+
   /**
    * Applies changes with last-write-wins and returns how many were accepted.
-   * Changes are expected to be validated already.
+   * Changes are expected to be validated already. Accepted changes that
+   * created a record (no previous version stored) are appended to `created`.
    */
-  applyChanges(householdId: string, changes: readonly Change[]): number {
+  applyChanges(householdId: string, changes: readonly Change[], created?: Change[]): number {
     if (changes.length === 0) return 0;
     return this.transaction(() => {
       let seq = this.head(householdId);
@@ -234,6 +327,7 @@ export class Store {
         if (stored && !lwwWins(change.u, data, stored.u, stored.data)) continue;
         this.stmt.upsert.run(householdId, change.c, change.id, data, change.u, ++seq);
         accepted++;
+        if (!stored) created?.push(change);
       }
       return accepted;
     });
@@ -248,5 +342,63 @@ export class Store {
     // An empty page means `since` is at (or beyond) the head; report the head.
     const cursor = page.length > 0 ? page[page.length - 1].seq : this.head(householdId);
     return { changes, cursor, more };
+  }
+
+  /* ----------------------------------- meta ---------------------------------- */
+
+  getMeta(key: string): string | undefined {
+    return (this.stmt.getMeta.get(key) as { value: string } | undefined)?.value;
+  }
+
+  setMeta(key: string, value: string): void {
+    this.stmt.setMeta.run(key, value);
+  }
+
+  /* ---------------------------- push subscriptions --------------------------- */
+
+  upsertPushSubscription(sub: NewPushSubscription): void {
+    this.stmt.upsertPush.run(
+      sub.endpoint,
+      sub.householdId,
+      sub.memberId,
+      sub.tokenHash,
+      sub.p256dh,
+      sub.auth,
+      sub.lang,
+      Date.now(),
+    );
+  }
+
+  /** Deletes one subscription (only within `householdId` if given). Returns the number deleted. */
+  deletePushSubscription(endpoint: string, householdId?: string): number {
+    const result =
+      householdId === undefined
+        ? this.stmt.deletePush.run(endpoint)
+        : this.stmt.deletePushInHousehold.run(endpoint, householdId);
+    return Number(result.changes);
+  }
+
+  /** Deletes every subscription registered with a device token (sign-out). */
+  deletePushSubscriptionsForToken(tokenHash: string): number {
+    return Number(this.stmt.deletePushForToken.run(tokenHash).changes);
+  }
+
+  /** Deletes every subscription of a member (all their devices were signed out). */
+  deletePushSubscriptionsForMember(householdId: string, memberId: string): number {
+    return Number(this.stmt.deletePushForMember.run(householdId, memberId).changes);
+  }
+
+  /** Subscriptions of a household whose device token is still valid. */
+  pushSubscriptions(householdId: string): PushSubscriptionRow[] {
+    return (this.stmt.pushForHousehold.all(householdId) as PushRow[]).map(toPushSubscription);
+  }
+
+  /** All subscriptions with a valid device token, grouped by household. */
+  allPushSubscriptions(): PushSubscriptionRow[] {
+    return (this.stmt.allPush.all() as PushRow[]).map(toPushSubscription);
+  }
+
+  setLastReminder(endpoint: string, localDate: string): void {
+    this.stmt.setLastReminder.run(localDate, endpoint);
   }
 }

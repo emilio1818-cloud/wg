@@ -81,6 +81,10 @@ liegt eine `fly.toml` bei.
 | `TRUST_PROXY` | – | `1` hinter einem Reverse Proxy (für Rate-Limits) |
 | `CORS_ORIGIN` | `*` | Erlaubte Origin für die API |
 | `RATE_LIMIT` | an | `0` schaltet Rate-Limits ab (nur für Tests) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | automatisch | Web-Push-Schlüsselpaar (base64url); ohne Angabe beim ersten Start erzeugt und in der DB gespeichert |
+| `VAPID_SUBJECT` | `mailto:push@nestly.app` | Kontakt für die Push-Dienste |
+| `REMINDERS` | an | `0` schaltet die tägliche Push-Erinnerung (Putzplan, Kündigungsfristen) ab |
+| `PUSH_ALLOW_ANY_HOST` | – | `1` erlaubt Push-Endpunkte außerhalb der bekannten Push-Dienste (FCM, Mozilla, Apple, Microsoft) |
 | `NESTLY_SERVER_URL` *(Build)* | – | Sync-Server, den eine statisch gehostete App verwenden soll |
 
 **Nur die App, ohne Server** (z. B. GitHub Pages): Die App funktioniert dann vollständig

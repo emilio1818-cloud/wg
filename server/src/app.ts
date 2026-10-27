@@ -1,6 +1,7 @@
 /**
- * Nestly sync server: HTTP API (see docs/SYNC_PROTOCOL.md), server-sent events
- * and optional static hosting of the built web app. Zero dependencies.
+ * Nestly sync server: HTTP API (see docs/SYNC_PROTOCOL.md), server-sent events,
+ * Web Push notifications and optional static hosting of the built web app.
+ * Zero dependencies.
  */
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -9,7 +10,13 @@ import path from 'node:path';
 import { COLLECTIONS } from '../../core/src/types.ts';
 import type { Change, CollectionName } from '../../core/src/types.ts';
 import { Store } from './db.ts';
-import type { Membership } from './db.ts';
+import type { Membership, PushSubscriptionRow } from './db.ts';
+import { decodeSubscriptionKeys, generateVapidKeys, sendPush, vapidPrivateKeyObject } from './push.ts';
+import type { SendOptions, VapidKeys } from './push.ts';
+import { activityMessage, normalizeLang, reminderMessage } from './push-text.ts';
+import type { HouseholdInfo, PushMessage } from './push-text.ts';
+import { dueChores, dueDeadlines, localDateHour } from './reminders.ts';
+import type { ReminderData } from './reminders.ts';
 
 export interface AppOptions {
   /** SQLite file path, or `:memory:`. */
@@ -22,10 +29,29 @@ export interface AppOptions {
   trustProxy?: boolean;
   /** Per-IP rate limiting (default on). */
   rateLimit?: boolean;
+  /** Daily chore/contract reminders via Web Push, checked every 10 minutes (default on). */
+  reminders?: boolean;
+  /** VAPID `sub` claim: a `mailto:` or `https:` contact (default `mailto:push@nestly.app`). */
+  pushSubject?: string;
+  /**
+   * VAPID key pair (base64url: 65-byte uncompressed public point, 32-byte private
+   * scalar). If absent, the pair stored in the database is used, or a new one is
+   * generated and stored on first start.
+   */
+  vapidKeys?: VapidKeys | null;
+  /** Accept push endpoints on any https host, not only the known browser push services. */
+  pushAnyHost?: boolean;
 }
 
 export interface App {
   server: http.Server;
+  /**
+   * Sends the daily reminders that are due at `now` (default: the current time).
+   * Resolves to the number of pushes the push services accepted.
+   */
+  runReminders(now?: Date): Promise<number>;
+  /** Resolves once all background push deliveries started so far are done. */
+  pushIdle(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -39,6 +65,18 @@ const HEARTBEAT_MS = 25_000;
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT_GENERAL = 300;
 const RATE_LIMIT_INVITE = 30;
+/** Activities older than this when they reach the server do not notify (offline backlog). */
+const ACTIVITY_PUSH_MAX_AGE_MS = 10 * 60_000;
+/** Upper bound on activity notifications triggered by one request. */
+const MAX_ACTIVITY_PUSHES = 10;
+const PUSH_CONCURRENCY = 8;
+const REMINDER_INTERVAL_MS = 10 * 60_000;
+/** Local hour from which the daily reminder is sent. */
+const REMINDER_HOUR = 9;
+const REMINDER_TTL_S = 12 * 60 * 60;
+const MAX_ENDPOINT_LENGTH = 2048;
+const DEFAULT_PUSH_SUBJECT = 'mailto:push@nestly.app';
+const VAPID_META_KEY = 'vapid_keys';
 
 const ID_RE = /^[A-Za-z0-9_:.\-]{1,128}$/;
 const ENTITY_ID_RE = /^[A-Za-z0-9_\-]{8,64}$/;
@@ -206,6 +244,72 @@ function normalizeInviteCode(raw: string): string | null {
 const newToken = () => crypto.randomBytes(32).toString('base64url');
 const hashToken = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
 
+/* ------------------------------------- push ---------------------------------- */
+
+/** Hosts of the browser push services (Chrome/Edge/Samsung via FCM, Firefox, Safari, legacy Edge). */
+const PUSH_SERVICE_SUFFIXES = ['.googleapis.com', '.push.services.mozilla.com', '.push.apple.com', '.notify.windows.com'];
+
+/**
+ * Push endpoints must be https on a known push service (so the server can't be used to
+ * POST to arbitrary hosts); plain http is only accepted for loopback hosts (local
+ * development and tests with a fake push service). `anyHost` lifts the host check.
+ */
+function parsePushEndpoint(value: unknown, anyHost = false): string {
+  const invalid = () => badRequest('subscription.endpoint must be an https:// URL');
+  if (typeof value !== 'string' || value.length > MAX_ENDPOINT_LENGTH) throw invalid();
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw invalid();
+  }
+  const loopback = url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]';
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) throw invalid();
+  if (url.username || url.password) throw invalid();
+  const host = url.hostname.toLowerCase();
+  if (!loopback && !anyHost && !PUSH_SERVICE_SUFFIXES.some((s) => host.endsWith(s))) {
+    throw badRequest('subscription.endpoint is not a known push service');
+  }
+  return value;
+}
+
+/** Configured keys, else the pair stored in `meta`, else a new pair (stored for next time). */
+function loadVapidKeys(store: Store, configured: VapidKeys | null | undefined): VapidKeys {
+  if (configured) {
+    vapidPrivateKeyObject(configured); // throws for malformed or mismatched keys
+    return { publicKey: configured.publicKey, privateKey: configured.privateKey };
+  }
+  return store.transaction(() => {
+    const stored = store.getMeta(VAPID_META_KEY);
+    if (stored) {
+      try {
+        const keys = JSON.parse(stored) as VapidKeys;
+        vapidPrivateKeyObject(keys);
+        return { publicKey: keys.publicKey, privateKey: keys.privateKey };
+      } catch {
+        console.warn('Stored VAPID keys are invalid; generating new ones (existing push subscriptions stop working)');
+      }
+    }
+    const keys = generateVapidKeys();
+    store.setMeta(VAPID_META_KEY, JSON.stringify(keys));
+    return keys;
+  });
+}
+
+/** Runs async jobs with at most `limit` in flight; results keep the job order. */
+async function runLimited<T>(jobs: Array<() => Promise<T>>, limit: number): Promise<T[]> {
+  const results: T[] = new Array(jobs.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const i = next++;
+      results[i] = await jobs[i]!();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, worker));
+  return results;
+}
+
 /* --------------------------------- rate limiting ----------------------------- */
 
 /** Fixed-window counter per key. */
@@ -346,6 +450,15 @@ export function createApp(options: AppOptions): App {
     options.rateLimit === false
       ? null
       : { general: new RateLimiter(RATE_LIMIT_GENERAL), invite: new RateLimiter(RATE_LIMIT_INVITE) };
+  let closed = false;
+  let vapidKeys: VapidKeys;
+  try {
+    vapidKeys = loadVapidKeys(store, options.vapidKeys);
+  } catch (err) {
+    store.close();
+    throw err;
+  }
+  const pushSubject = options.pushSubject || DEFAULT_PUSH_SUBJECT;
 
   /* ------------------------------ SSE listeners ------------------------------ */
 
@@ -382,6 +495,127 @@ export function createApp(options: AppOptions): App {
     limiters?.invite.prune();
   }, RATE_WINDOW_MS);
   pruneTimer.unref();
+
+  /* ----------------------------------- push ---------------------------------- */
+
+  /** Background deliveries, so tests (and callers) can wait for them. */
+  const pushTasks = new Set<Promise<unknown>>();
+
+  function track(task: Promise<unknown>): void {
+    const tracked = task
+      .catch((err: unknown) => console.error('Push delivery failed:', err))
+      .finally(() => pushTasks.delete(tracked));
+    pushTasks.add(tracked);
+  }
+
+  /** Sends one message; deletes the subscription if the push service reports it gone. */
+  async function deliver(sub: PushSubscriptionRow, message: PushMessage, opts?: SendOptions): Promise<boolean> {
+    const result = await sendPush(sub, JSON.stringify(message), vapidKeys, pushSubject, opts);
+    if (result.gone && !closed) store.deletePushSubscription(sub.endpoint);
+    return result.status >= 200 && result.status < 300;
+  }
+
+  function householdInfo(householdId: string): HouseholdInfo {
+    const household = store.record(householdId, 'household', householdId)?.data ?? {};
+    const str = (value: unknown) => (typeof value === 'string' ? value : '');
+    const memberNames = new Map<string, string>();
+    for (const { id, data } of store.records(householdId, 'members')) {
+      if (typeof data.name === 'string') memberNames.set(id, data.name);
+    }
+    return { name: str(household.name), emoji: str(household.emoji), currency: str(household.currency) || 'EUR', memberNames };
+  }
+
+  /**
+   * Notifies the other members about activity records that `pusherId` just
+   * created. Runs after the response is sent and never affects the request.
+   */
+  function notifyActivities(householdId: string, pusherId: string, created: readonly Change[]): void {
+    const now = Date.now();
+    const activities = created
+      .filter((change) => change.c === 'activity')
+      .map((change) => change.data)
+      .filter((data) => typeof data.createdAt === 'number' && now - data.createdAt < ACTIVITY_PUSH_MAX_AGE_MS)
+      .slice(-MAX_ACTIVITY_PUSHES);
+    if (activities.length === 0) return;
+    track(
+      (async () => {
+        await new Promise((resolve) => setImmediate(resolve));
+        if (closed) return;
+        const subs = store.pushSubscriptions(householdId);
+        if (subs.length === 0) return;
+        const info = householdInfo(householdId);
+        const jobs: Array<() => Promise<boolean>> = [];
+        for (const activity of activities) {
+          for (const sub of subs) {
+            if (sub.memberId === activity.actorId || sub.memberId === pusherId) continue;
+            const message = activityMessage(activity, info, sub.memberId, normalizeLang(sub.lang));
+            if (message) jobs.push(() => deliver(sub, message));
+          }
+        }
+        await runLimited(jobs, PUSH_CONCURRENCY);
+      })(),
+    );
+  }
+
+  /**
+   * For every subscription whose household-local time is past 09:00 and that
+   * has not been checked today: marks it checked and sends one reminder with
+   * the member's due chores and close contract deadlines (if any).
+   */
+  async function runReminders(now: Date = new Date()): Promise<number> {
+    if (closed) return 0;
+    const byHousehold = new Map<string, PushSubscriptionRow[]>();
+    for (const sub of store.allPushSubscriptions()) {
+      const list = byHousehold.get(sub.householdId) ?? [];
+      list.push(sub);
+      byHousehold.set(sub.householdId, list);
+    }
+    const jobs: Array<() => Promise<boolean>> = [];
+    const collect = (householdId: string, subs: PushSubscriptionRow[]) => {
+      const household = store.record(householdId, 'household', householdId)?.data ?? {};
+      const { date, hour } = localDateHour(now, household.timezone);
+      if (hour < REMINDER_HOUR) return;
+      const pending = subs.filter((sub) => sub.lastReminder !== date);
+      if (pending.length === 0) return;
+      const data: ReminderData = {
+        members: store.records(householdId, 'members').map((r) => r.data),
+        chores: store.liveRecords(householdId, 'chores'),
+        contracts: store.liveRecords(householdId, 'contracts'),
+        events: store.liveRecords(householdId, 'events'),
+      };
+      const info = householdInfo(householdId);
+      const deadlines = dueDeadlines(data.contracts, date);
+      for (const sub of pending) {
+        store.setLastReminder(sub.endpoint, date);
+        const member = data.members.find((m) => m.id === sub.memberId);
+        if (member && (member.deleted === true || member.leftAt != null)) continue;
+        const message = reminderMessage({ chores: dueChores(data, sub.memberId, date), deadlines }, info, normalizeLang(sub.lang));
+        if (message) jobs.push(() => deliver(sub, message, { topic: 'reminder', ttl: REMINDER_TTL_S }));
+      }
+    };
+    for (const [householdId, subs] of byHousehold) {
+      try {
+        collect(householdId, subs);
+      } catch (err) {
+        // Malformed records in one household must not stop the others' reminders.
+        console.error(`Reminders for household ${householdId} failed:`, err);
+      }
+    }
+    const results = await runLimited(jobs, PUSH_CONCURRENCY);
+    return results.filter(Boolean).length;
+  }
+
+  let reminderRun: Promise<unknown> | null = null;
+  const reminderTimer =
+    options.reminders === false
+      ? null
+      : setInterval(() => {
+          if (reminderRun || closed) return;
+          reminderRun = runReminders()
+            .catch((err: unknown) => console.error('Reminder run failed:', err))
+            .finally(() => (reminderRun = null));
+        }, REMINDER_INTERVAL_MS);
+  reminderTimer?.unref();
 
   /* ---------------------------------- helpers -------------------------------- */
 
@@ -486,9 +720,10 @@ export function createApp(options: AppOptions): App {
     const changes = parseChanges(body.changes, householdId);
 
     const token = newToken();
+    const created: Change[] = [];
     const accepted = store.transaction(() => {
       if (store.isMemberClaimed(householdId, memberId)) return null;
-      const count = store.applyChanges(householdId, changes);
+      const count = store.applyChanges(householdId, changes, created);
       store.addMembership(hashToken(token), householdId, memberId);
       return count;
     });
@@ -496,20 +731,23 @@ export function createApp(options: AppOptions): App {
     if (accepted > 0) broadcastSync(householdId, memberId);
     // The joining device has no data yet, so its first pull starts at 0.
     sendJson(res, 200, { householdId, memberId, token, cursor: 0 });
+    notifyActivities(householdId, memberId, created);
   }
 
   async function sync(req: http.IncomingMessage, res: http.ServerResponse, url: URL, auth: Membership) {
     let since: number;
+    const created: Change[] = [];
     if (req.method === 'POST') {
       const body = await readJsonObject(req);
       since = parseSince(body.since);
       const changes = parseChanges(body.changes, auth.householdId);
-      if (store.applyChanges(auth.householdId, changes) > 0) broadcastSync(auth.householdId, auth.memberId);
+      if (store.applyChanges(auth.householdId, changes, created) > 0) broadcastSync(auth.householdId, auth.memberId);
     } else {
       const raw = url.searchParams.get('since');
       since = parseSince(raw !== null && /^\d+$/.test(raw) ? Number(raw) : (raw ?? undefined));
     }
     sendJson(res, 200, store.pull(auth.householdId, since, PAGE_SIZE));
+    notifyActivities(auth.householdId, auth.memberId, created);
   }
 
   function openEvents(res: http.ServerResponse, auth: Session) {
@@ -537,7 +775,10 @@ export function createApp(options: AppOptions): App {
   }
 
   function leave(res: http.ServerResponse, auth: Session) {
-    store.revokeMembership(auth.tokenHash);
+    store.transaction(() => {
+      store.revokeMembership(auth.tokenHash);
+      store.deletePushSubscriptionsForToken(auth.tokenHash);
+    });
     // End this device's event streams; its token is no longer valid.
     for (const listener of listeners.get(auth.householdId) ?? []) {
       if (listener.tokenHash !== auth.tokenHash) continue;
@@ -553,13 +794,49 @@ export function createApp(options: AppOptions): App {
     const memberId = body.memberId;
     if (typeof memberId !== 'string' || !ID_RE.test(memberId)) throw badRequest('memberId is invalid');
     if (memberId === auth.memberId) throw badRequest('use /leave to sign out this device');
-    const revoked = store.revokeMember(auth.householdId, memberId);
+    const revoked = store.transaction(() => {
+      store.deletePushSubscriptionsForMember(auth.householdId, memberId);
+      return store.revokeMember(auth.householdId, memberId);
+    });
     for (const listener of listeners.get(auth.householdId) ?? []) {
       if (listener.memberId !== memberId) continue;
       removeListener(auth.householdId, listener);
       listener.res.end();
     }
     sendJson(res, 200, { ok: true, revoked });
+  }
+
+  /** Registers (or refreshes) this device's push subscription. */
+  async function subscribePush(req: http.IncomingMessage, res: http.ServerResponse, auth: Session) {
+    const body = await readJsonObject(req);
+    const subscription = body.subscription;
+    if (!isPlainObject(subscription)) throw badRequest('subscription must be an object');
+    const endpoint = parsePushEndpoint(subscription.endpoint, options.pushAnyHost);
+    const keys = isPlainObject(subscription.keys) ? subscription.keys : {};
+    const decoded = decodeSubscriptionKeys(keys.p256dh, keys.auth);
+    if (!decoded) {
+      throw badRequest('subscription.keys needs base64url p256dh (65-byte P-256 point) and auth (16 bytes)');
+    }
+    store.upsertPushSubscription({
+      endpoint,
+      householdId: auth.householdId,
+      memberId: auth.memberId,
+      tokenHash: auth.tokenHash,
+      p256dh: decoded.uaPublic.toString('base64url'),
+      auth: decoded.authSecret.toString('base64url'),
+      lang: normalizeLang(body.lang),
+    });
+    sendJson(res, 200, { ok: true });
+  }
+
+  async function unsubscribePush(req: http.IncomingMessage, res: http.ServerResponse, auth: Session) {
+    const body = await readJsonObject(req);
+    const endpoint = body.endpoint;
+    if (typeof endpoint !== 'string' || endpoint === '' || endpoint.length > MAX_ENDPOINT_LENGTH) {
+      throw badRequest('endpoint is required');
+    }
+    store.deletePushSubscription(endpoint, auth.householdId);
+    sendJson(res, 200, { ok: true });
   }
 
   /* ---------------------------------- routing -------------------------------- */
@@ -575,7 +852,7 @@ export function createApp(options: AppOptions): App {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Authorization, Content-Type',
         'Access-Control-Max-Age': '86400',
       });
@@ -590,6 +867,11 @@ export function createApp(options: AppOptions): App {
     if (resource === 'health' && param === undefined) {
       allow(req, 'GET');
       return sendJson(res, 200, { ok: true, version: VERSION });
+    }
+
+    if (resource === 'push' && param === 'key' && action === undefined) {
+      allow(req, 'GET');
+      return sendJson(res, 200, { publicKey: vapidKeys.publicKey });
     }
 
     if (resource === 'invites' && param) {
@@ -627,6 +909,10 @@ export function createApp(options: AppOptions): App {
         case 'release':
           allow(req, 'POST');
           return release(req, res, authenticate(req, householdId));
+        case 'push':
+          allow(req, 'POST', 'DELETE');
+          if (req.method === 'DELETE') return unsubscribePush(req, res, authenticate(req, householdId));
+          return subscribePush(req, res, authenticate(req, householdId));
       }
     }
 
@@ -654,9 +940,15 @@ export function createApp(options: AppOptions): App {
 
   return {
     server,
+    runReminders,
+    async pushIdle() {
+      while (pushTasks.size > 0) await Promise.all(pushTasks);
+    },
     close() {
+      closed = true;
       clearInterval(heartbeat);
       clearInterval(pruneTimer);
+      if (reminderTimer) clearInterval(reminderTimer);
       return new Promise<void>((resolve, reject) => {
         const done = (err?: Error) => {
           store.close();

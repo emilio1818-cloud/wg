@@ -9,6 +9,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import http from 'node:http';
+import { createDecipheriv, createECDH, createHmac, randomBytes } from 'node:crypto';
 import { createApp } from '../../server/src/app.ts';
 
 const require = createRequire(import.meta.url);
@@ -38,9 +40,47 @@ async function snap(page, name) {
   await page.screenshot({ path: path.join(shots, `${name}.png`) });
 }
 
+/* A fake push service that records Web Push deliveries. */
+const pushInbox = [];
+let pushService;
+let pushPort;
+
+const hmac = (key, data) => createHmac('sha256', key).update(data).digest();
+const b64u = (buf) => Buffer.from(buf).toString('base64url');
+
+/** RFC 8291 receiver side: decrypts an aes128gcm Web Push body. */
+function decryptPush(body, ecdh, authSecret) {
+  const salt = body.subarray(0, 16);
+  const idlen = body[20];
+  const serverKey = body.subarray(21, 21 + idlen);
+  const ct = body.subarray(21 + idlen);
+  const prkKey = hmac(authSecret, ecdh.computeSecret(serverKey));
+  const keyInfo = Buffer.concat([Buffer.from('WebPush: info\0'), ecdh.getPublicKey(), serverKey, Buffer.from([1])]);
+  const ikm = hmac(prkKey, keyInfo).subarray(0, 32);
+  const prk = hmac(salt, ikm);
+  const cek = hmac(prk, Buffer.concat([Buffer.from('Content-Encoding: aes128gcm\0'), Buffer.from([1])])).subarray(0, 16);
+  const nonce = hmac(prk, Buffer.concat([Buffer.from('Content-Encoding: nonce\0'), Buffer.from([1])])).subarray(0, 12);
+  const decipher = createDecipheriv('aes-128-gcm', cek, nonce);
+  decipher.setAuthTag(ct.subarray(ct.length - 16));
+  const plain = Buffer.concat([decipher.update(ct.subarray(0, ct.length - 16)), decipher.final()]);
+  let end = plain.length - 1;
+  while (end > 0 && plain[end] === 0) end--;
+  return JSON.parse(plain.subarray(0, end).toString('utf8'));
+}
+
 before(async () => {
   assert.ok(fs.existsSync(path.join(dist, 'index.html')), 'run `npm run build` first');
-  app = createApp({ dbPath: ':memory:', staticDir: dist, rateLimit: false });
+  pushService = http.createServer((req, res) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      pushInbox.push({ url: req.url, headers: req.headers, body: Buffer.concat(chunks) });
+      res.writeHead(201).end();
+    });
+  });
+  await new Promise((resolve) => pushService.listen(0, '127.0.0.1', resolve));
+  pushPort = pushService.address().port;
+  app = createApp({ dbPath: ':memory:', staticDir: dist, rateLimit: false, reminders: false });
   await new Promise((resolve) => app.server.listen(0, '127.0.0.1', resolve));
   base = `http://127.0.0.1:${app.server.address().port}/`;
   browser = await chromium.launch();
@@ -49,6 +89,7 @@ before(async () => {
 after(async () => {
   await browser?.close();
   await app?.close();
+  pushService?.close();
 });
 
 describe('Nestly end-to-end', () => {
@@ -152,6 +193,57 @@ describe('Nestly end-to-end', () => {
     await pb.evaluate(() => window.dispatchEvent(new Event('online')));
     await pa.getByText('Klopapier').waitFor({ timeout: 15_000 });
     await snap(pa, 'sync-2-shopping-a');
+  });
+
+  it('notifies roommates via Web Push', async () => {
+    // The browser's push service is faked: the subscription points at our local inbox.
+    const ecdh = createECDH('prime256v1');
+    ecdh.generateKeys();
+    const authSecret = randomBytes(16);
+    const sub = { endpoint: `http://127.0.0.1:${pushPort}/push/sophie`, p256dh: b64u(ecdh.getPublicKey()), auth: b64u(authSecret) };
+    const { ctx, page: pb } = state.b;
+    await ctx.grantPermissions(['notifications']);
+    await ctx.addInitScript((s) => {
+      let key = null;
+      const subscription = {
+        endpoint: s.endpoint,
+        get options() {
+          return { applicationServerKey: key };
+        },
+        toJSON: () => ({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }),
+        unsubscribe: async () => true,
+      };
+      const pushManager = {
+        getSubscription: async () => (key ? subscription : null),
+        subscribe: async (opts) => {
+          key = opts.applicationServerKey.buffer.slice(0);
+          return subscription;
+        },
+      };
+      Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { ready: Promise.resolve({ pushManager }), register: async () => ({}) } });
+    }, sub);
+    await pb.reload();
+    await pb.evaluate(() => (location.hash = '#/wg/settings'));
+    await pb.getByRole('switch', { name: 'Benachrichtigungen' }).click();
+    await pb.getByText('Benachrichtigungen sind an').waitFor();
+
+    const pa = state.a.page;
+    await pa.evaluate(() => (location.hash = '#/money'));
+    await pa.locator('.fab').click();
+    await pa.locator('.amount-input input').fill('18');
+    await pa.getByPlaceholder('Wofür?').fill('Kinoabend');
+    await pa.getByRole('button', { name: 'Speichern' }).click();
+
+    const deadline = Date.now() + 10_000;
+    while (!pushInbox.some((m) => m.url === '/push/sophie') && Date.now() < deadline) await new Promise((r) => setTimeout(r, 100));
+    const msg = pushInbox.find((m) => m.url === '/push/sophie');
+    assert.ok(msg, 'push delivered to the fake push service');
+    assert.equal(msg.headers['content-encoding'], 'aes128gcm');
+    assert.match(msg.headers.authorization, /^vapid t=.+, k=.+$/);
+    const payload = decryptPush(msg.body, ecdh, authSecret);
+    assert.match(payload.title, /WG Sonnendeck/);
+    assert.match(payload.body, /Emil/);
+    assert.match(payload.body, /Kinoabend/);
   });
 
   it('completes a chore and awards points on both devices', async () => {
