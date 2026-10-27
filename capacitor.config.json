@@ -1,0 +1,13 @@
+{
+  "appId": "app.nestly.wg",
+  "appName": "Nestly",
+  "webDir": "app/dist",
+  "backgroundColor": "#f4f3f9",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f4f3f9"
+  },
+  "android": {
+    "backgroundColor": "#f4f3f9"
+  }
+}

@@ -6,12 +6,12 @@ import { parseAmount } from '../../../core/src/money.ts';
 import type { ID, ItemCategory, ShoppingItem } from '../../../core/src/types.ts';
 import { getLang, t, tp } from '../i18n/index.ts';
 import type { Key } from '../i18n/index.ts';
-import { currencySymbol, money } from '../i18n/format.ts';
+import { money } from '../i18n/format.ts';
 import { get, list, remove, update } from '../state/store.ts';
 import { displayName, member, members, myId } from '../state/selectors.ts';
 import { prefs } from '../state/prefs.ts';
 import { addItems, deleteList, finishShopping, saveList, toggleItem } from '../state/actions.ts';
-import { amountWidth, Avatar, Button, Check, ColorRow, cx, Empty, EmojiGrid, Field, Icon, IconButton, MemberPicker, SwitchRow } from '../components/core.tsx';
+import { AmountInput, Avatar, Button, Check, ColorRow, cx, Empty, EmojiGrid, Field, Icon, IconButton, MemberPicker, SwitchRow } from '../components/core.tsx';
 import { confetti, confirmDialog, Sheet, shareText, toast, undoToast } from '../components/overlays.tsx';
 
 void Fragment;
@@ -443,10 +443,7 @@ function FinishSheet(props: { listId: ID }) {
       </p>
       <div class="caption center">{cart.map((i) => i.name).join(', ')}</div>
       <div class="overline center">{t('shop.spent')}</div>
-      <div class="amount-input" style={{ paddingTop: 0 }}>
-        <input inputMode="decimal" placeholder="0" autoFocus value={amountStr} onInput={(e: any) => setAmountStr(e.target.value.replace(/[^\d.,]/g, ''))} style={{ width: amountWidth(amountStr) }} />
-        <span class="cur">{currencySymbol()}</span>
-      </div>
+      <AmountInput value={amountStr} autoFocus onInput={setAmountStr} style={{ paddingTop: 0 }} />
       <p class="hint center">
         {t('shop.splitAll')}
         {amount > 0 && ms.length ? ` · ${money(Math.round(amount / ms.length))} ${t('common.perPerson')}` : ''}

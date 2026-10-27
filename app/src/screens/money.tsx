@@ -13,7 +13,7 @@ import { currencySymbol, fmtDate, freqLabel, money } from '../i18n/format.ts';
 import { get, list, remove } from '../state/store.ts';
 import { balances, displayName, firstName, member, members, myId, settleTransfers } from '../state/selectors.ts';
 import { bookDueRecurring, saveExpense, saveRecurring, settleUp } from '../state/actions.ts';
-import { amountWidth, Avatar, Button, cx, Empty, Field, Icon, IconButton, MemberPicker, Row, scrollActiveChip, Segmented, SwitchRow, Tile } from '../components/core.tsx';
+import { AmountInput, Avatar, Button, cx, Empty, Field, Icon, IconButton, MemberPicker, Row, scrollActiveChip, Segmented, SwitchRow, Tile } from '../components/core.tsx';
 import { confetti, confirmDialog, copyText, Sheet, toast, undoToast } from '../components/overlays.tsx';
 import { BarChart, Donut } from '../components/charts.tsx';
 
@@ -501,21 +501,14 @@ function ExpenseEditor(props: { id?: ID; preset: Partial<Expense> }) {
         </Button>
       }
     >
-      <div class="amount-input">
-        <input
-          inputMode="decimal"
-          placeholder="0"
-          value={amountStr}
-          autoFocus={!existing}
-          aria-label={t('common.amount')}
-          onInput={(e: any) => {
-            setAmountStr(e.target.value.replace(/[^\d.,]/g, ''));
-            setError(null);
-          }}
-          style={{ width: amountWidth(amountStr) }}
-        />
-        <span class="cur">{currencySymbol()}</span>
-      </div>
+      <AmountInput
+        value={amountStr}
+        autoFocus={!existing}
+        onInput={(v) => {
+          setAmountStr(v);
+          setError(null);
+        }}
+      />
       <div class="input-group mb-12">
         <input
           class="input"
@@ -708,10 +701,7 @@ function SettleSheet(props: { tr?: Transfer }) {
       <div class="overline">{t('settle.to')}</div>
       <MemberPicker members={ms} value={[to]} onChange={(ids) => setTo(ids[0]!)} meId={me} />
       {from === to ? <div class="error-text">{t('settle.same')}</div> : null}
-      <div class="amount-input">
-        <input inputMode="decimal" placeholder="0" value={amountStr} onInput={(e: any) => setAmountStr(e.target.value.replace(/[^\d.,]/g, ''))} style={{ width: amountWidth(amountStr) }} />
-        <span class="cur">{currencySymbol()}</span>
-      </div>
+      <AmountInput value={amountStr} onInput={setAmountStr} />
       <div class="overline">{t('settle.method')}</div>
       <div class="chips">
         {(['paypal', 'bank', 'cash', 'other'] as const).map((m) => (
@@ -820,10 +810,7 @@ function RecurringEditor(props: { id?: ID }) {
         </Button>
       }
     >
-      <div class="amount-input">
-        <input inputMode="decimal" placeholder="0" value={amountStr} autoFocus={!existing} onInput={(e: any) => setAmountStr(e.target.value.replace(/[^\d.,]/g, ''))} style={{ width: amountWidth(amountStr) }} />
-        <span class="cur">{currencySymbol()}</span>
-      </div>
+      <AmountInput value={amountStr} autoFocus={!existing} onInput={setAmountStr} />
       <Field>
         <input
           class="input"

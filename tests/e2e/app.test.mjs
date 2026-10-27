@@ -34,6 +34,7 @@ async function device(locale = 'de-DE') {
 async function snap(page, name) {
   if (!shots) return;
   fs.mkdirSync(shots, { recursive: true });
+  await page.waitForTimeout(450); // let enter animations finish
   await page.screenshot({ path: path.join(shots, `${name}.png`) });
 }
 

@@ -13,27 +13,12 @@ import { Avatar, Button, cx, EmojiGrid, Field, Icon, Row, Segmented, SwitchRow, 
 import { confirmDialog, downloadFile, toast } from '../components/overlays.tsx';
 import { openProfileEditor } from './members.tsx';
 import { openInvite } from './members.tsx';
+import { canInstall } from '../state/install.ts';
+import { openInstall } from '../components/install.tsx';
 
 void Fragment;
 
 export const APP_VERSION = '1.0.0';
-
-let installPrompt: any = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  installPrompt = e;
-});
-
-export function canInstall(): boolean {
-  return !!installPrompt;
-}
-
-export async function promptInstall(): Promise<void> {
-  if (!installPrompt) return;
-  installPrompt.prompt();
-  await installPrompt.userChoice.catch(() => null);
-  installPrompt = null;
-}
 
 function SyncStatusRow() {
   const s = store.session!;
@@ -200,7 +185,7 @@ export function Settings() {
         <>
           <div class="overline">{t('settings.install')}</div>
           <div class="list">
-            <Row lead={<Tile icon="smartphone" color="var(--primary)" />} title={t('home.installTitle')} sub={t('home.installSub')} onClick={() => promptInstall()} chevron />
+            <Row lead={<Tile icon="smartphone" color="var(--primary)" />} title={t('home.installTitle')} sub={t('home.installSub')} onClick={() => openInstall()} chevron />
           </div>
         </>
       ) : null}

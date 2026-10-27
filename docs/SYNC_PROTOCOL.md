@@ -58,6 +58,7 @@ All bodies are JSON. CORS is open (`*`); no cookies are used.
 | GET | `/api/households/:id/invite` | ✓ | Current invite code |
 | POST | `/api/households/:id/invite` | ✓ | Rotate invite code |
 | POST | `/api/households/:id/leave` | ✓ | Revoke this device's token |
+| POST | `/api/households/:id/release` | ✓ | Sign out all devices of another member (`{ memberId }`) |
 
 ### `POST /api/households`
 

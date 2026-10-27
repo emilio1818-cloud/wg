@@ -121,6 +121,10 @@ export function leave(base: string, householdId: ID, token: string): Promise<unk
   return request(base, `/api/households/${householdId}/leave`, { method: 'POST', token, timeout: 5000 });
 }
 
+export function releaseMember(base: string, householdId: ID, token: string, memberId: ID): Promise<{ ok: boolean; revoked: number }> {
+  return request(base, `/api/households/${householdId}/release`, { method: 'POST', token, body: JSON.stringify({ memberId }) });
+}
+
 export function eventsUrl(base: string, householdId: ID, token: string): string {
   return `${clean(base)}/api/households/${householdId}/events?token=${encodeURIComponent(token)}`;
 }

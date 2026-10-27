@@ -17,6 +17,12 @@ export function money(cents: Cents, opts: { sign?: boolean; compact?: boolean } 
   return formatMoney(cents, currency, intlLocale(), opts);
 }
 
+/** Whether the currency symbol precedes the amount in the current locale ("€5" vs "5 €"). */
+export function currencyBefore(): boolean {
+  const parts = new Intl.NumberFormat(intlLocale(), { style: 'currency', currency }).formatToParts(1);
+  return parts.findIndex((p) => p.type === 'currency') < parts.findIndex((p) => p.type === 'integer');
+}
+
 /** Currency symbol for amount inputs ("€"). */
 export function currencySymbol(): string {
   const part = new Intl.NumberFormat(intlLocale(), { style: 'currency', currency }).formatToParts(0).find((p) => p.type === 'currency');

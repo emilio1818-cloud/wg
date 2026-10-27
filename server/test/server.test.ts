@@ -427,6 +427,25 @@ describe('sync server', () => {
       // A new device may take over the member.
       assert.equal((await join(srv.base, h.inviteCode, h.memberId)).status, 200);
     });
+
+    it('releasing a member signs out all their devices (lost phone)', async () => {
+      const h = await createHousehold(srv.base);
+      const other = uid('m');
+      const joined = await join(srv.base, h.inviteCode, other);
+      assert.equal(joined.status, 200);
+
+      // A member cannot release themselves; that is what /leave is for.
+      const self = await request(srv.base, 'POST', `/api/households/${h.householdId}/release`, { token: h.token, body: { memberId: h.memberId } });
+      assert.equal(self.status, 400);
+
+      const res = await request(srv.base, 'POST', `/api/households/${h.householdId}/release`, { token: h.token, body: { memberId: other } });
+      assert.equal(res.status, 200);
+      assert.deepEqual(res.body, { ok: true, revoked: 1 });
+      const lost = await request(srv.base, 'GET', `/api/households/${h.householdId}/sync`, { token: joined.body.token });
+      assert.equal(lost.status, 401);
+      // The profile can be claimed again with the invite code.
+      assert.equal((await join(srv.base, h.inviteCode, other)).status, 200);
+    });
   });
 
   describe('sync', () => {

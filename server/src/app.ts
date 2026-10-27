@@ -333,6 +333,7 @@ type Session = Membership & { tokenHash: string };
 interface Listener {
   res: http.ServerResponse;
   tokenHash: string;
+  memberId: string;
 }
 
 export function createApp(options: AppOptions): App {
@@ -519,7 +520,7 @@ export function createApp(options: AppOptions): App {
     });
     res.write(sseFrame('hello', { cursor: store.head(auth.householdId), memberId: auth.memberId }));
 
-    const listener: Listener = { res, tokenHash: auth.tokenHash };
+    const listener: Listener = { res, tokenHash: auth.tokenHash, memberId: auth.memberId };
     const set = listeners.get(auth.householdId) ?? new Set();
     listeners.set(auth.householdId, set);
     set.add(listener);
@@ -544,6 +545,21 @@ export function createApp(options: AppOptions): App {
       listener.res.end();
     }
     sendJson(res, 200, { ok: true });
+  }
+
+  /** Frees a member profile whose device is lost, so it can be claimed again with an invite. */
+  async function release(req: http.IncomingMessage, res: http.ServerResponse, auth: Session) {
+    const body = await readJsonObject(req);
+    const memberId = body.memberId;
+    if (typeof memberId !== 'string' || !ID_RE.test(memberId)) throw badRequest('memberId is invalid');
+    if (memberId === auth.memberId) throw badRequest('use /leave to sign out this device');
+    const revoked = store.revokeMember(auth.householdId, memberId);
+    for (const listener of listeners.get(auth.householdId) ?? []) {
+      if (listener.memberId !== memberId) continue;
+      removeListener(auth.householdId, listener);
+      listener.res.end();
+    }
+    sendJson(res, 200, { ok: true, revoked });
   }
 
   /* ---------------------------------- routing -------------------------------- */
@@ -608,6 +624,9 @@ export function createApp(options: AppOptions): App {
         case 'leave':
           allow(req, 'POST');
           return leave(res, authenticate(req, householdId));
+        case 'release':
+          allow(req, 'POST');
+          return release(req, res, authenticate(req, householdId));
       }
     }
 

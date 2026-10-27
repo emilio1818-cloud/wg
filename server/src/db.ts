@@ -83,6 +83,9 @@ function prepareStatements(db: DatabaseSync) {
     revokeMembership: prepare(
       'UPDATE memberships SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL',
     ),
+    revokeMember: prepare(
+      'UPDATE memberships SET revoked_at = ? WHERE household_id = ? AND member_id = ? AND revoked_at IS NULL',
+    ),
     memberClaimed: prepare(
       'SELECT 1 FROM memberships WHERE household_id = ? AND member_id = ? AND revoked_at IS NULL LIMIT 1',
     ),
@@ -183,6 +186,11 @@ export class Store {
 
   revokeMembership(tokenHash: string): void {
     this.stmt.revokeMembership.run(Date.now(), tokenHash);
+  }
+
+  /** Revokes every device of a member (e.g. a lost phone). Returns the number revoked. */
+  revokeMember(householdId: string, memberId: string): number {
+    return Number(this.stmt.revokeMember.run(Date.now(), householdId, memberId).changes);
   }
 
   isMemberClaimed(householdId: string, memberId: string): boolean {

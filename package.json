@@ -11,6 +11,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
+    "screenshots": "node scripts/screenshots.mjs",
     "start": "node server/src/index.ts",
     "dev": "node scripts/dev.mjs",
     "typecheck": "tsc -p core && tsc -p server && tsc -p app --noEmit",
@@ -21,6 +22,21 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "typescript": "^6.0.2"
-  }
+    "typescript": "^6.0.2",
+    "playwright": "^1.50.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emilio1818-cloud/wg.git"
+  },
+  "keywords": [
+    "wg",
+    "flatshare",
+    "roommates",
+    "splitwise-alternative",
+    "chores",
+    "shopping-list",
+    "pwa",
+    "offline-first"
+  ]
 }

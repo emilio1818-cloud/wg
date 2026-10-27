@@ -1,0 +1,17 @@
+# Self-host Nestly (app + sync server) with persistent storage:
+#   docker compose up -d   →   http://localhost:8787
+services:
+  nestly:
+    build: .
+    image: ghcr.io/emilio1818-cloud/wg:latest
+    restart: unless-stopped
+    ports:
+      - '8787:8787'
+    volumes:
+      - nestly-data:/data
+    environment:
+      # Set when running behind a reverse proxy (Caddy, nginx, Traefik …)
+      TRUST_PROXY: '1'
+
+volumes:
+  nestly-data:

@@ -1,0 +1,26 @@
+# Deploy to Fly.io:  fly launch --copy-config --no-deploy && fly volumes create nestly_data --size 1 && fly deploy
+app = 'nestly'
+primary_region = 'fra'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  TRUST_PROXY = '1'
+
+[[mounts]]
+  source = 'nestly_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = 'off'
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    path = '/api/health'
+    timeout = '5s'

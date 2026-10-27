@@ -6,7 +6,8 @@ import { today } from '../../../core/src/dates.ts';
 import type { ID } from '../../../core/src/types.ts';
 import { t } from '../i18n/index.ts';
 import { fmtDate, money } from '../i18n/format.ts';
-import { get, update } from '../state/store.ts';
+import { get, store, update } from '../state/store.ts';
+import * as api from '../state/api.ts';
 import { allMembers, balances, firstName, memberIsAway, members, myId, settleTransfers } from '../state/selectors.ts';
 import { addMember, moveOut } from '../state/actions.ts';
 import { Avatar, Button, ColorRow, cx, EmojiGrid, Field, IconButton, Row, SwitchRow, TopBar } from '../components/core.tsx';
@@ -111,6 +112,20 @@ export function MemberDetail(props: { id: ID }) {
   const toMe = settleTransfers().find((tr) => tr.from === myId() && tr.to === m.id);
   const fromThem = settleTransfers().find((tr) => tr.from === m.id && tr.to === myId());
 
+  const session = store.session;
+  const canRelease = !isMe && m.claimed && !m.leftAt && session?.mode === 'cloud';
+  const release = async () => {
+    const ok = await confirmDialog({ title: t('members.releaseTitle', { name: firstName(m.name) }), message: t('members.releaseSub', { name: firstName(m.name) }), confirm: t('members.release'), destructive: true, emoji: '📱' });
+    if (!ok || !session?.serverUrl || !session.token) return;
+    try {
+      await api.releaseMember(session.serverUrl, session.householdId, session.token, m.id);
+      update('members', m.id, { claimed: false });
+      toast(t('members.released', { name: firstName(m.name) }), { emoji: '📱' });
+    } catch {
+      toast(t('error.network'), { emoji: '⚠️' });
+    }
+  };
+
   const doMoveOut = async () => {
     if (b !== 0) {
       await confirmDialog({ title: t('members.moveOutTitle', { name: firstName(m.name) }), message: t('members.moveOutBlocked', { amount: money(Math.abs(b)) }), confirm: t('common.ok'), emoji: '💸' });
@@ -164,8 +179,13 @@ export function MemberDetail(props: { id: ID }) {
           {t('wg.settings')}
         </Button>
       ) : null}
+      {canRelease ? (
+        <Button block class="mt-24" icon="smartphone" onClick={release}>
+          {t('members.release')}
+        </Button>
+      ) : null}
       {!m.leftAt ? (
-        <Button variant="danger" block class="mt-24" icon="door" onClick={doMoveOut}>
+        <Button variant="danger" block class={canRelease ? 'mt-8' : 'mt-24'} icon="door" onClick={doMoveOut}>
           {t('members.moveOut')}
         </Button>
       ) : (

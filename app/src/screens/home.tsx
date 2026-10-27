@@ -20,6 +20,7 @@ import { openQuickAdd } from './shopping.tsx';
 import { openEventEditor } from './calendar.tsx';
 import { openInvite } from './members.tsx';
 import { openWifi } from './wg.tsx';
+import { InstallBanner } from '../components/install.tsx';
 
 void Fragment;
 
@@ -264,6 +265,7 @@ export function Home() {
       </div>
 
       <DeadlineBanners />
+      <InstallBanner />
 
       <SectionTitle title={t('home.forYou')} action={forMe.length ? t('home.seeAll') : undefined} onAction={() => navigate('/chores')} />
       {forMe.length ? (

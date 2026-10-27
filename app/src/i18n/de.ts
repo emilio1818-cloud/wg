@@ -144,6 +144,12 @@ export const de = {
   'home.installTitle': 'Nestly installieren',
   'home.installSub': 'Zum Home-Bildschirm hinzufügen – wie eine richtige App.',
   'home.pinned': 'Angepinnt',
+  'install.title': 'Nestly auf den Home-Bildschirm',
+  'install.sub': 'Startet wie eine App, im Vollbild und auch offline.',
+  'install.cta': 'Installieren',
+  'install.iosStep1': 'Tippe unten in Safari auf „Teilen“',
+  'install.iosStep2': 'Wähle „Zum Home-Bildschirm“',
+  'install.iosStep3': 'Fertig – Nestly startet jetzt wie eine App 🎉',
 
   'activity.title': 'Aktivität',
   'activity.emptyTitle': 'Noch ruhig hier',
@@ -646,6 +652,10 @@ export const de = {
   'members.joinedOn': 'Dabei seit {date}',
   'members.sendMoney': 'Geld senden',
   'members.balance': 'Saldo',
+  'members.release': 'Gerät abmelden',
+  'members.releaseTitle': '{name} abmelden?',
+  'members.releaseSub': 'Handy verloren oder neu? {name} wird auf allen Geräten abgemeldet und kann mit dem Einladungscode wieder beitreten. Es gehen keine Daten verloren.',
+  'members.released': '{name} wurde abgemeldet',
 
   'profile.title': 'Profil',
   'profile.paypal': 'PayPal.me-Name',

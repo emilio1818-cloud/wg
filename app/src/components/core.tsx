@@ -4,6 +4,7 @@ import { ICONS } from '../lib/icons.ts';
 import type { IconName } from '../lib/icons.ts';
 import { goBack } from '../lib/router.ts';
 import { t } from '../i18n/index.ts';
+import { currencyBefore, currencySymbol } from '../i18n/format.ts';
 import type { Member } from '../../../core/src/types.ts';
 
 void Fragment;
@@ -332,7 +333,30 @@ export function MemberPicker(props: { members: Member[]; value: string[]; multip
 
 /** Width for the big centered amount input so the currency sign hugs the number. */
 export function amountWidth(value: string): string {
-  return `${Math.max(1, value.length * 0.92 + 0.3)}ch`;
+  const digits = (value.match(/\d/g) ?? []).length || 1;
+  const separators = (value.match(/[.,]/g) ?? []).length;
+  return `${digits + separators * 0.45 + 0.15}ch`;
+}
+
+/** Big centered amount entry with the currency sign on the locale's side. */
+export function AmountInput(props: { value: string; onInput: (v: string) => void; autoFocus?: boolean; style?: any }) {
+  const before = currencyBefore();
+  const sign = <span class="cur">{currencySymbol()}</span>;
+  return (
+    <div class="amount-input" style={props.style}>
+      {before ? sign : null}
+      <input
+        inputMode="decimal"
+        placeholder="0"
+        value={props.value}
+        autoFocus={props.autoFocus}
+        aria-label={t('common.amount')}
+        onInput={(e: any) => props.onInput(e.target.value.replace(/[^\d.,]/g, ''))}
+        style={{ width: amountWidth(props.value), textAlign: before ? 'left' : 'right' }}
+      />
+      {before ? null : sign}
+    </div>
+  );
 }
 
 /** Keeps the active chip of a horizontal chip row visible. */
