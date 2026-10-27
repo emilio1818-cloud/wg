@@ -146,7 +146,7 @@ export function setActivityDescriber(fn: (a: Activity) => string): void {
 }
 
 function notifyNewActivity(seen: Set<string>): void {
-  if (!prefs.notify || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (!prefs.notify || prefs.pushEndpoint || typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   if (document.visibilityState === 'visible') return;
   const me = store.session?.memberId;
   const fresh = list('activity').filter((a) => !seen.has(a.id) && a.actorId !== me && Date.now() - a.createdAt < 10 * 60_000);

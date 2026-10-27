@@ -176,6 +176,18 @@ describe('Nestly end-to-end', () => {
     await pa.getByText('Pizza-Abend').waitFor();
   });
 
+  it('turns text shared from another app into shopping items', async () => {
+    const pa = state.a.page;
+    const shared = encodeURIComponent('Pfannkuchen\n- 2x Milch\n- Eier\n1. Mehl');
+    await pa.goto(`${base}?nosw&share_text=${shared}#/`);
+    const input = pa.locator('.sheet input.input');
+    await input.waitFor();
+    assert.equal(await input.inputValue(), 'Pfannkuchen, 2x Milch, Eier, Mehl');
+    await pa.getByRole('button', { name: 'Hinzufügen' }).click();
+    await pa.getByText('Mehl').waitFor();
+    assert.ok(!(await pa.evaluate(() => location.search)).includes('share_text'));
+  });
+
   it('had no runtime errors on either device', () => {
     assert.deepEqual(state.a.errors, []);
     assert.deepEqual(state.b.errors, []);

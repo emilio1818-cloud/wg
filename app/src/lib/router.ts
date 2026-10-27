@@ -34,14 +34,15 @@ export function navDirection(): 'forward' | 'back' | 'none' {
   return direction;
 }
 
-export function navigate(path: string, opts: { replace?: boolean } = {}): void {
+export function navigate(path: string, opts: { replace?: boolean; fade?: boolean } = {}): void {
   if (sheets.length) {
     closeAllSheets().then(() => navigate(path, opts));
     return;
   }
   const target = '#' + path;
   if (location.hash === target) return;
-  direction = 'forward';
+  // Query-only changes (e.g. switching a tab) are not page transitions.
+  if (path.split('?')[0] !== current.path) direction = opts.fade ? 'none' : 'forward';
   if (opts.replace) {
     history.replaceState(history.state, '', target);
     current = parse();
@@ -130,6 +131,13 @@ window.addEventListener('popstate', (e) => {
   if (openIds.length && (stateSheet === undefined || stateSheet < openIds[openIds.length - 1]!)) {
     dismissTop();
     return;
+  }
+});
+
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sheets.some((s) => !s.closing)) {
+    e.preventDefault();
+    void closeTopSheet();
   }
 });
 

@@ -6,21 +6,25 @@ import { monthlyEquivalent, nextDue } from '../../../core/src/recurring.ts';
 import { leaderboard } from '../../../core/src/chores.ts';
 import { startOfMonth } from '../../../core/src/dates.ts';
 import { t, tp } from '../i18n/index.ts';
+import type { Key } from '../i18n/index.ts';
 import { fmtDate, greeting, money, relDay } from '../i18n/format.ts';
 import { list, store } from '../state/store.ts';
+import { syncState } from '../state/sync.ts';
+import { leaveHousehold } from '../state/actions.ts';
 import { activeItemsCount, firstName, household, me, members, myBalance, myId, settleTransfers, sortedActivity } from '../state/selectors.ts';
 import { prefs, setPrefs } from '../state/prefs.ts';
-import { Avatar, AvatarStack, Button, Icon, IconButton, SectionTitle } from '../components/core.tsx';
+import { Avatar, AvatarStack, Button, Icon, IconButton, Progress, SectionTitle } from '../components/core.tsx';
 import type { IconName } from '../lib/icons.ts';
 import { ActivityRow } from '../components/activity.tsx';
-import { openExpenseEditor, openSettle } from './money.tsx';
+import { openExpenseEditor, openRecurringEditor, openSettle } from './money.tsx';
+import { openContractEditor } from './contracts.tsx';
 import { ChoreRow, choresDueForMe } from './chores.tsx';
 import { openChoreEditor } from './chores.tsx';
 import { openQuickAdd } from './shopping.tsx';
 import { openEventEditor } from './calendar.tsx';
 import { openInvite } from './members.tsx';
 import { openWifi } from './wg.tsx';
-import { InstallBanner } from '../components/install.tsx';
+import { InstallBanner, NotifyBanner } from '../components/install.tsx';
 
 void Fragment;
 
@@ -34,7 +38,9 @@ function BalanceHero() {
   return (
     <div class={`hero ${variant}`}>
       <div class="label">{bal === 0 ? t('home.balance') : bal > 0 ? t('home.youGet') : t('home.youOwe')}</div>
-      <div class="big num">{bal === 0 ? t('home.settled') : money(Math.abs(bal))}</div>
+      <div class="big num" style={bal === 0 ? { fontSize: '30px' } : undefined}>
+        {bal === 0 ? t('home.settled') : money(Math.abs(bal))}
+      </div>
       <div class="hstack" style={{ minHeight: '30px' }}>
         {people.length ? <AvatarStack members={people} size={28} /> : null}
         <span class="sub">
@@ -126,16 +132,16 @@ function Overview() {
         icon="repeat"
         accent="var(--green)"
         label={t('home.tile.fixed')}
-        value={money(perPerson, { compact: perPerson >= 100000 })}
-        sub={nextPayment ? `${nextPayment.r.emoji ?? '🔁'} ${nextPayment.r.title} · ${relDay(nextPayment.d!)}` : t('home.tile.fixedSub')}
+        value={recurring.length ? money(perPerson, { compact: perPerson >= 100000 }) : '–'}
+        sub={nextPayment ? `${nextPayment.r.emoji ?? '🔁'} ${nextPayment.r.title} · ${relDay(nextPayment.d!)}` : recurring.length ? t('home.tile.fixedSub') : t('home.tile.fixedEmpty')}
         onClick={() => navigate('/money?tab=recurring')}
       />
       <BentoTile
         icon="file"
         accent="var(--violet)"
         label={t('home.tile.contracts')}
-        value={deadlines.length ? `⏳ ${deadlines[0]!.s.daysLeft} ${tp('unit.day', deadlines[0]!.s.daysLeft!)}` : String(contracts.length)}
-        sub={deadlines.length ? `${deadlines[0]!.c.emoji ?? '📄'} ${deadlines[0]!.c.name}` : t('home.tile.contractsOk')}
+        value={deadlines.length ? `⏳ ${deadlines[0]!.s.daysLeft} ${tp('unit.day', deadlines[0]!.s.daysLeft!)}` : contracts.length ? String(contracts.length) : '–'}
+        sub={deadlines.length ? `${deadlines[0]!.c.emoji ?? '📄'} ${deadlines[0]!.c.name}` : contracts.length ? t('home.tile.contractsOk') : t('home.tile.contractsEmpty')}
         onClick={() => navigate(deadlines.length ? `/wg/contracts/${deadlines[0]!.c.id}` : '/wg/contracts')}
       />
       <BentoTile
@@ -155,6 +161,53 @@ function Overview() {
         onClick={() => (hh?.wifiSsid ? openWifi() : navigate('/wg/wifi'))}
       />
     </div>
+  );
+}
+
+function startSteps(): { key: Key; done: boolean; run: () => void }[] | null {
+  const hh = household();
+  if (!hh || store.session?.mode === 'demo' || prefs.dismissed.includes('start')) return null;
+  if (Date.now() - hh.createdAt > 30 * 86_400_000) return null;
+  const steps: { key: Key; done: boolean; run: () => void }[] = [
+    { key: 'start.invite', done: members().filter((m) => m.claimed).length >= 2, run: () => openInvite() },
+    { key: 'start.expense', done: list('expenses').some((e) => e.kind === 'expense'), run: () => openExpenseEditor() },
+    { key: 'start.recurring', done: list('recurring').length > 0, run: () => openRecurringEditor() },
+    { key: 'start.chore', done: list('choreLogs').length > 0, run: () => navigate('/chores') },
+    { key: 'start.wifi', done: !!hh.wifiSsid, run: () => navigate('/wg/wifi') },
+    { key: 'start.contract', done: list('contracts').length > 0, run: () => openContractEditor() },
+  ];
+  return steps.every((s) => s.done) ? null : steps;
+}
+
+/** Activation checklist for young flats: the steps that make Nestly stick. */
+function StartChecklist() {
+  const steps = startSteps();
+  if (!steps) return null;
+  const done = steps.filter((s) => s.done).length;
+  return (
+    <>
+      <SectionTitle title={`🚀 ${t('start.title')}`} />
+      <div class="card" style={{ padding: '14px 16px 6px' }}>
+        <div class="hstack" style={{ justifyContent: 'space-between' }}>
+          <span class="caption">{t('start.progress', { done, total: steps.length })}</span>
+          <IconButton icon="x" label={t('common.close')} variant="plain" size={16} onClick={() => setPrefs({ dismissed: [...prefs.dismissed, 'start'] })} style={{ width: '28px', height: '28px' }} />
+        </div>
+        <Progress value={done / steps.length} color="var(--green)" />
+        <div style={{ margin: '8px -16px 0' }}>
+          {steps.map((step) => (
+            <button key={step.key} type="button" class="row compact" onClick={step.run} disabled={step.done} style={step.done ? { opacity: 0.55 } : undefined}>
+              <span class={step.done ? 'check on' : 'check'} style={{ width: '24px', height: '24px' }}>
+                <Icon name="check" size={14} stroke={3} />
+              </span>
+              <div class="main">
+                <div class="title" style={{ fontSize: '15px', textDecoration: step.done ? 'line-through' : undefined }}>{t(step.key)}</div>
+              </div>
+              {step.done ? null : <Icon name="chevronRight" size={17} class="chev" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -206,8 +259,8 @@ export function Home() {
           <div class="caption" style={{ fontSize: '13.5px' }}>
             {fmtDate(today(), 'long')}
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            {greeting()}, {firstName(self?.name ?? '')} 👋
+          <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {greeting()}, {firstName(self?.name ?? '')}{'\u00a0'}👋
           </div>
         </div>
         <IconButton
@@ -221,6 +274,23 @@ export function Home() {
         />
       </header>
 
+      {syncState.status === 'unauthorized' ? (
+        <button
+          type="button"
+          class="banner danger mb-12"
+          onClick={async () => {
+            await leaveHousehold();
+            navigate('/join', { replace: true });
+          }}
+        >
+          <span class="b-emoji">🔒</span>
+          <div class="b-main">
+            <div class="b-title">{t('error.sessionExpired')}</div>
+          </div>
+          <Icon name="chevronRight" size={18} class="faint" />
+        </button>
+      ) : null}
+
       {s.mode === 'demo' ? (
         <div class="banner info mb-12">
           <span class="b-emoji">🎭</span>
@@ -232,7 +302,7 @@ export function Home() {
             {t('home.demoCta')}
           </Button>
         </div>
-      ) : alone ? (
+      ) : alone && !startSteps() ? (
         <button type="button" class="banner info mb-12" onClick={() => openInvite()}>
           <span class="b-emoji">💌</span>
           <div class="b-main">
@@ -265,7 +335,10 @@ export function Home() {
       </div>
 
       <DeadlineBanners />
+      <NotifyBanner />
       <InstallBanner />
+
+      <StartChecklist />
 
       <SectionTitle title={t('home.forYou')} action={forMe.length ? t('home.seeAll') : undefined} onAction={() => navigate('/chores')} />
       {forMe.length ? (

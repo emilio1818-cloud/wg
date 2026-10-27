@@ -204,14 +204,14 @@ function ItemRow(props: { item: ShoppingItem; color: string }) {
 /* ------------------------------------------------------------------ */
 
 /** Quick add from anywhere (home screen). */
-export function openQuickAdd(): void {
-  openSheet(() => <QuickAddSheet />);
+export function openQuickAdd(preset = ''): void {
+  openSheet(() => <QuickAddSheet preset={preset} />);
 }
 
-function QuickAddSheet() {
+function QuickAddSheet(props: { preset: string }) {
   const lists = sortedLists();
   const [listId, setListId] = useState(lists[0]?.id ?? '');
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(props.preset);
   const submit = () => {
     if (!draft.trim() || !listId) return;
     const added = addItems(listId, draft);

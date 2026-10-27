@@ -1,13 +1,14 @@
-import { h, render, useLayoutEffect, useRef } from './lib/ui.ts';
+import { h, render, scheduleRender, useLayoutEffect, useRef } from './lib/ui.ts';
 import { getRoute, navDirection, navigate, sheets } from './lib/router.ts';
 import { t } from './i18n/index.ts';
 import { setCurrency } from './i18n/format.ts';
 import { applyTheme } from './state/prefs.ts';
 import { applyLanguage } from './state/locale.ts';
 import { LogoGlyph } from './components/brand.tsx';
-import { loadPersisted, store } from './state/store.ts';
+import { loadPersisted, store, update } from './state/store.ts';
 import { startSync, setActivityDescriber, onAfterSync } from './state/sync.ts';
-import { bookDueRecurring } from './state/actions.ts';
+import { bookDueRecurring, localTimezone } from './state/actions.ts';
+import { refreshPush } from './state/push.ts';
 import { household } from './state/selectors.ts';
 import { cx, Icon } from './components/core.tsx';
 import type { IconName } from './lib/icons.ts';
@@ -26,6 +27,7 @@ import { Board } from './screens/board.tsx';
 import { Members, MemberDetail } from './screens/members.tsx';
 import { Settings } from './screens/settings.tsx';
 import { choresDueForMe } from './screens/chores.tsx';
+import { openQuickAdd } from './screens/shopping.tsx';
 
 const TABS: { path: string; label: () => string; icon: IconName }[] = [
   { path: '/', label: () => t('tab.home'), icon: 'home' },
@@ -56,9 +58,9 @@ function TabBar(props: { path: string }) {
           class={tab.path === active ? 'active' : ''}
           aria-current={tab.path === active ? 'page' : undefined}
           onClick={() => {
-            if (tab.path === active && props.path !== tab.path) navigate(tab.path, { replace: true });
+            if (tab.path === active && props.path !== tab.path) navigate(tab.path, { replace: true, fade: true });
             else if (tab.path === active) window.scrollTo({ top: 0, behavior: 'smooth' });
-            else navigate(tab.path, { replace: true });
+            else navigate(tab.path, { replace: true, fade: true });
           }}
         >
           <span class="ico">
@@ -111,6 +113,28 @@ function routeScreen(segments: string[]) {
 
 const scrollPositions = new Map<string, number>();
 
+/** Mirrors open work on the installed app icon (Badging API). */
+function updateAppBadge(count: number): void {
+  const nav = navigator as Navigator & { setAppBadge?: (n: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+  if (!nav.setAppBadge) return;
+  (count > 0 ? nav.setAppBadge(count) : nav.clearAppBadge?.())?.catch(() => {});
+}
+
+/** Text shared into Nestly from another app (Web Share Target) becomes shopping items. */
+function consumeSharedText(): void {
+  const params = new URLSearchParams(location.search);
+  const text = [params.get('share_title'), params.get('share_text')].filter(Boolean).join('\n').trim();
+  if (!text) return;
+  history.replaceState(null, '', location.pathname + location.hash);
+  if (!store.session) return;
+  const items = text
+    .split(/\n|,|;|•/)
+    .map((l) => l.replace(/^\s*(?:[-*–·•]|\d+[.)])\s*/, '').trim())
+    .filter((l) => l && l.length < 60 && !/^https?:/i.test(l));
+  navigate('/shopping', { replace: true });
+  setTimeout(() => openQuickAdd(items.join(', ')), 300);
+}
+
 function App() {
   const route = getRoute();
   const lastPath = useRef(route.path);
@@ -124,6 +148,10 @@ function App() {
     const y = navDirection() === 'back' ? (scrollPositions.get(route.path) ?? 0) : 0;
     window.scrollTo(0, y);
   }, [route.path]);
+
+  useLayoutEffect(() => {
+    updateAppBadge(store.session ? choresDueForMe().length : 0);
+  });
 
   if (!store.loaded) {
     return (
@@ -173,11 +201,17 @@ async function boot(): Promise<void> {
   if (store.session) {
     bookDueRecurring();
     startSync();
+    void refreshPush();
+    const hh = household();
+    if (hh && !hh.timezone && store.session.mode !== 'demo') update('household', hh.id, { timezone: localTimezone() });
   }
   onAfterSync(() => bookDueRecurring());
+  consumeSharedText();
   // Re-check recurring bookings when the app comes back the next day.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && store.session) bookDueRecurring();
+    if (document.visibilityState !== 'visible') return;
+    if (store.session) bookDueRecurring();
+    scheduleRender(); // relative dates ("heute", "morgen") may have changed
   });
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !/[?&]nosw/.test(location.search)) {

@@ -14,7 +14,7 @@ import { get, list, remove } from '../state/store.ts';
 import { balances, displayName, firstName, member, members, myId, settleTransfers } from '../state/selectors.ts';
 import { bookDueRecurring, saveExpense, saveRecurring, settleUp } from '../state/actions.ts';
 import { AmountInput, Avatar, Button, cx, Empty, Field, Icon, IconButton, MemberPicker, Row, scrollActiveChip, Segmented, SwitchRow, Tile } from '../components/core.tsx';
-import { confetti, confirmDialog, copyText, Sheet, toast, undoToast } from '../components/overlays.tsx';
+import { confetti, confirmDialog, copyText, Sheet, shareText, toast, undoToast } from '../components/overlays.tsx';
 import { BarChart, Donut } from '../components/charts.tsx';
 
 void Fragment;
@@ -22,9 +22,9 @@ void Fragment;
 type Tab = 'balances' | 'history' | 'recurring' | 'stats';
 
 export function Money() {
-  const route = getRoute();
-  const initial = (route.query.get('tab') as Tab) || 'balances';
-  const [tab, setTab] = useState<Tab>(initial);
+  // The tab lives in the URL (#/money?tab=…) so links from other screens land on the right one.
+  const tab = (getRoute().query.get('tab') as Tab) || 'balances';
+  const setTab = (v: Tab) => navigate(`/money?tab=${v}`, { replace: true });
   return (
     <div class="screen">
       <h1 class="large-title" style={{ paddingTop: '14px' }}>
@@ -33,10 +33,7 @@ export function Money() {
       <Segmented
         class="mt-12"
         value={tab}
-        onChange={(v) => {
-          setTab(v);
-          navigate(`/money?tab=${v}`, { replace: true });
-        }}
+        onChange={setTab}
         options={[
           { value: 'balances', label: t('money.tab.balances') },
           { value: 'history', label: t('money.tab.history') },
@@ -112,6 +109,9 @@ function Balances() {
                     {money(tr.amount)}
                   </div>
                 </div>
+                {tr.to === myId() ? (
+                  <IconButton icon="bell" label={t('money.remind')} variant="soft" size={18} onClick={() => remindDebtor(tr)} />
+                ) : null}
                 <Button size="sm" variant={tr.from === myId() || tr.to === myId() ? 'primary' : 'default'} onClick={() => openSettle(tr)}>
                   {t('money.markPaid')}
                 </Button>
@@ -130,6 +130,15 @@ function Balances() {
       )}
     </>
   );
+}
+
+/** Shares a friendly payment reminder (with a PayPal.me link when available). */
+function remindDebtor(tr: Transfer): void {
+  const debtor = member(tr.from);
+  const me = member(myId());
+  const lines = [t('money.remindMessage', { name: firstName(debtor?.name ?? ''), amount: money(tr.amount) })];
+  if (me?.paypal) lines.push(t('money.remindPaypal', { link: paypalLink(me.paypal, tr.amount) }));
+  void shareText(lines.join('\n'));
 }
 
 /* ------------------------------------------------------------------ */

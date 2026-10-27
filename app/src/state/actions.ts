@@ -27,6 +27,7 @@ import { prefs, setPrefs } from './prefs.ts';
 import { members, myId } from './selectors.ts';
 import { get, getRaw, list, markSynced, pendingChanges, put, remove, resetStore, setSession, store, update } from './store.ts';
 import { startSync, stopSync, syncNow } from './sync.ts';
+import { refreshPush } from './push.ts';
 
 type New<T> = Omit<T, 'id' | 'createdAt' | 'updatedAt'> & { id?: ID };
 
@@ -63,7 +64,7 @@ export async function createHousehold(input: CreateInput): Promise<void> {
   resetStore({ householdId, memberId, mode: 'local', cursor: 0 });
   const now = Date.now();
 
-  put('household', { id: householdId, name: input.wgName.trim(), emoji: input.wgEmoji, currency: 'EUR', createdAt: now, updatedAt: now });
+  put('household', { id: householdId, name: input.wgName.trim(), emoji: input.wgEmoji, currency: 'EUR', timezone: localTimezone(), createdAt: now, updatedAt: now });
   put('members', { id: memberId, name: input.myName.trim(), emoji: input.myEmoji, color: input.myColor, claimed: true, createdAt: now, updatedAt: now });
   input.roommates
     .map((n) => n.trim())
@@ -99,6 +100,14 @@ export async function createHousehold(input: CreateInput): Promise<void> {
   await goCloud();
 }
 
+export function localTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createDefaultLists(): void {
   const defaults: [string, string][] = [
     [t('list.supermarket'), '🛒'],
@@ -128,6 +137,7 @@ export async function goCloud(serverUrl?: string): Promise<boolean> {
   if (serverUrl) setPrefs({ serverUrl });
   startSync();
   await syncNow();
+  void refreshPush();
   return true;
 }
 
@@ -157,6 +167,7 @@ export async function joinHousehold(base: string, code: string, preview: api.Inv
     /* not critical */
   }
   startSync();
+  void refreshPush();
 }
 
 export async function leaveHousehold(): Promise<void> {

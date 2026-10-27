@@ -125,6 +125,18 @@ export function releaseMember(base: string, householdId: ID, token: string, memb
   return request(base, `/api/households/${householdId}/release`, { method: 'POST', token, body: JSON.stringify({ memberId }) });
 }
 
+export function pushKey(base: string): Promise<{ publicKey: string }> {
+  return request(base, '/api/push/key');
+}
+
+export function subscribePush(base: string, householdId: ID, token: string, subscription: PushSubscriptionJSON, lang: string): Promise<unknown> {
+  return request(base, `/api/households/${householdId}/push`, { method: 'POST', token, body: JSON.stringify({ subscription, lang }) });
+}
+
+export function unsubscribePush(base: string, householdId: ID, token: string, endpoint: string): Promise<unknown> {
+  return request(base, `/api/households/${householdId}/push`, { method: 'DELETE', token, body: JSON.stringify({ endpoint }), timeout: 5000 });
+}
+
 export function eventsUrl(base: string, householdId: ID, token: string): string {
   return `${clean(base)}/api/households/${householdId}/events?token=${encodeURIComponent(token)}`;
 }

@@ -4,7 +4,9 @@ import { t } from '../i18n/index.ts';
 import { canInstall, hasNativePrompt, promptInstall } from '../state/install.ts';
 import { prefs, setPrefs } from '../state/prefs.ts';
 import { Button, Icon, IconButton } from './core.tsx';
-import { Sheet } from './overlays.tsx';
+import { Sheet, toast } from './overlays.tsx';
+import { store } from '../state/store.ts';
+import { enableNotifications, notificationsEnabled, notificationsSupported } from '../state/push.ts';
 import { LogoGlyph } from './brand.tsx';
 
 /** Opens the native install prompt, or step-by-step instructions on iOS. */
@@ -47,6 +49,35 @@ export function InstallBanner() {
         {t('install.cta')}
       </Button>
       <IconButton icon="x" label={t('common.close')} variant="plain" size={17} onClick={() => setPrefs({ dismissed: [...prefs.dismissed, 'install'] })} />
+    </div>
+  );
+}
+
+/** Invites the user to turn on reminders once the flat is synced with others. */
+export function NotifyBanner() {
+  if (store.session?.mode !== 'cloud' || !notificationsSupported() || notificationsEnabled()) return null;
+  if (Notification.permission === 'denied' || prefs.dismissed.includes('notify')) return null;
+  return (
+    <div class="banner mt-16">
+      <span class="tile" style={{ background: 'var(--amber-soft)', color: 'var(--amber)' }}>
+        <Icon name="bell" size={21} />
+      </span>
+      <div class="b-main">
+        <div class="b-title">{t('notify.bannerTitle')}</div>
+        <div class="b-sub">{t('notify.bannerSub')}</div>
+      </div>
+      <Button
+        size="sm"
+        variant="primary"
+        onClick={async () => {
+          const r = await enableNotifications();
+          if (r === 'denied') toast(t('settings.notifDenied'), { emoji: '🔕' });
+          else if (r !== 'unsupported') toast(t('settings.notifOn'), { emoji: '🔔' });
+        }}
+      >
+        {t('notify.bannerCta')}
+      </Button>
+      <IconButton icon="x" label={t('common.close')} variant="plain" size={17} onClick={() => setPrefs({ dismissed: [...prefs.dismissed, 'notify'] })} />
     </div>
   );
 }

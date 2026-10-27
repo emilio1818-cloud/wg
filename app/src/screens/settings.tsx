@@ -14,6 +14,7 @@ import { confirmDialog, downloadFile, toast } from '../components/overlays.tsx';
 import { openProfileEditor } from './members.tsx';
 import { openInvite } from './members.tsx';
 import { canInstall } from '../state/install.ts';
+import { disableNotifications, enableNotifications, notificationsEnabled } from '../state/push.ts';
 import { openInstall } from '../components/install.tsx';
 
 void Fragment;
@@ -72,13 +73,12 @@ export function Settings() {
   const [showEmoji, setShowEmoji] = useState(false);
   if (!hh || !s) return null;
 
-  const notifSupported = typeof Notification !== 'undefined';
   const toggleNotify = async (on: boolean) => {
-    if (!on) return setPrefs({ notify: false });
-    if (!notifSupported) return;
-    const perm = await Notification.requestPermission();
-    if (perm === 'granted') setPrefs({ notify: true });
-    else toast(t('settings.notifDenied'), { emoji: '🔕' });
+    if (!on) return void disableNotifications();
+    const result = await enableNotifications();
+    if (result === 'denied') toast(t('settings.notifDenied'), { emoji: '🔕' });
+    else if (result === 'unsupported') toast(t('settings.notifUnsupported'), { emoji: '🔕' });
+    else toast(t('settings.notifOn'), { emoji: '🔔' });
   };
 
   const leave = async () => {
@@ -178,7 +178,7 @@ export function Settings() {
 
       <div class="overline">{t('settings.notifications')}</div>
       <div class="list">
-        <SwitchRow lead={<Tile icon="bell" color="var(--amber)" />} title={t('settings.notifications')} sub={t('settings.notificationsHint')} on={prefs.notify && notifSupported && Notification.permission === 'granted'} onChange={toggleNotify} />
+        <SwitchRow lead={<Tile icon="bell" color="var(--amber)" />} title={t('settings.notifications')} sub={t('settings.notificationsHint')} on={notificationsEnabled()} onChange={toggleNotify} />
       </div>
 
       {canInstall() ? (

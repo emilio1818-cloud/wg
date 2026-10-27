@@ -12,6 +12,8 @@ export interface Prefs {
   activitySeenAt: number;
   /** Home tips the user dismissed. */
   dismissed: string[];
+  /** Endpoint of this device's Web Push subscription, if registered with the server. */
+  pushEndpoint?: string;
   /** Fallback sync server for static hosting (e.g. GitHub Pages). */
   serverUrl?: string;
 }
