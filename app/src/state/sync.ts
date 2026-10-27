@@ -64,6 +64,11 @@ export async function syncNow(): Promise<void> {
     for (let round = 0; round < 50; round++) {
       const pending = pendingChanges();
       const res = await api.sync(s.serverUrl!, s.householdId, s.token!, since, pending);
+      // The user may have left or switched flats while the request was in flight.
+      if (store.session?.householdId !== s.householdId) {
+        setStatus('idle');
+        return;
+      }
       markSynced(pending);
       applyRemote(res.changes);
       since = res.cursor;

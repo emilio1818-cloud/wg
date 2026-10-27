@@ -274,6 +274,12 @@ export function Home() {
         />
       </header>
 
+      {syncState.status === 'offline' ? (
+        <div class="badge amber mb-12" style={{ height: '28px', padding: '0 12px', fontSize: '13px' }}>
+          <Icon name="cloudOff" size={15} /> {t('sync.offline')}
+        </div>
+      ) : null}
+
       {syncState.status === 'unauthorized' ? (
         <button
           type="button"
