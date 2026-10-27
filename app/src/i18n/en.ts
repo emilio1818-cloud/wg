@@ -612,6 +612,8 @@ export const en: Dict = {
   'cal.deleted': 'Event deleted',
   'cal.titleRequired': 'What’s the event called?',
   'cal.awayTitle': '{name} is away',
+  'cal.export': 'Export to calendar',
+  'cal.exported': 'Calendar exported – open the file to import it',
 
   'etype.party': 'Party',
   'etype.guest': 'Guests',

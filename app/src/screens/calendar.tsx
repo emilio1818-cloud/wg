@@ -9,10 +9,11 @@ import { t } from '../i18n/index.ts';
 import type { Key } from '../i18n/index.ts';
 import { fmtDate, money, relDay } from '../i18n/format.ts';
 import { get, list, remove } from '../state/store.ts';
-import { displayName, firstName, members, myId } from '../state/selectors.ts';
+import { displayName, firstName, household, members, myId } from '../state/selectors.ts';
 import { saveEvent } from '../state/actions.ts';
 import { AvatarStack, Button, cx, Field, Icon, IconButton, MemberPicker, Row, SwitchRow, Tile, TopBar } from '../components/core.tsx';
-import { Sheet, toast, undoToast } from '../components/overlays.tsx';
+import { downloadFile, Sheet, toast, undoToast } from '../components/overlays.tsx';
+import { buildIcs } from '../../../core/src/ical.ts';
 import { openChoreDetail } from './chores.tsx';
 
 void Fragment;
@@ -127,9 +128,29 @@ export function CalendarScreen() {
     setLayers(next);
   };
 
+  const exportIcs = () => {
+    const items = collectEntries(addDays(T, -30), addDays(T, 180), layers);
+    const ics = buildIcs(
+      household()?.name ?? 'Nestly',
+      items.map((e) => ({
+        uid: e.key,
+        title: `${e.emoji} ${e.title}`,
+        date: e.date,
+        endDate: e.endDate,
+        time: e.time,
+        endTime: e.event?.endTime,
+        description: [e.sub, e.event?.note].filter(Boolean).join('\n') || undefined,
+        location: e.event?.location,
+        yearly: e.layer === 'birthdays',
+      })),
+    );
+    downloadFile(`${(household()?.name ?? 'nestly').replace(/[^\p{L}\d]+/gu, '-')}.ics`, ics, 'text/calendar;charset=utf-8');
+    toast(t('cal.exported'), { emoji: '📅' });
+  };
+
   return (
     <div class="screen">
-      <TopBar title={t('cal.title')} fallback="/wg" />
+      <TopBar title={t('cal.title')} fallback="/wg" right={<IconButton icon="download" label={t('cal.export')} onClick={exportIcs} />} />
       <div class="card mt-8">
         <div class="hstack mb-12">
           <IconButton icon="chevronLeft" label="prev" variant="soft" onClick={() => setMonth(addMonths(month, -1))} />

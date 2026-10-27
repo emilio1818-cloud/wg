@@ -387,3 +387,27 @@ describe('ids', () => {
     assert.equal(formatInviteCode('k7q9xm'), 'K7Q-9XM');
   });
 });
+
+describe('ical export', async () => {
+  const { buildIcs } = await import('../src/ical.ts');
+  it('writes all-day, timed and yearly events with escaping and folding', () => {
+    const ics = buildIcs(
+      'WG Kastanienallee',
+      [
+        { uid: 'a', title: 'Party; mit Freunden, yay', date: '2026-11-07', time: '20:00' },
+        { uid: 'b', title: 'Lena weg', date: '2026-11-06', endDate: '2026-11-11' },
+        { uid: 'c', title: 'Mias Geburtstag 🎂', date: '2026-11-05', yearly: true },
+        { uid: 'd', title: 'x'.repeat(100), date: '2026-11-01' },
+      ],
+      new Date('2026-10-27T08:00:00Z'),
+    );
+    assert.match(ics, /^BEGIN:VCALENDAR\r\n/);
+    assert.match(ics, /SUMMARY:Party\; mit Freunden\\, yay/);
+    assert.match(ics, /DTSTART:20261107T200000\r\nDURATION:PT1H/);
+    assert.match(ics, /DTSTART;VALUE=DATE:20261106\r\nDTEND;VALUE=DATE:20261112/);
+    assert.match(ics, /RRULE:FREQ=YEARLY/);
+    assert.match(ics, /DTSTAMP:20261027T080000Z/);
+    for (const line of ics.split('\r\n')) assert.ok(new TextEncoder().encode(line).length <= 75, 'folded');
+    assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+  });
+});

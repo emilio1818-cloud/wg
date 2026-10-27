@@ -99,6 +99,14 @@ WG-nah („Mitbewohnis“, „Stark! +30 Punkte“), aber nie albern bei Geld un
 * Kundennummern, Zählernummer, Kontakt mit einem Tipp kopieren bzw. anrufen.
 * Mit Fixkosten verknüpfbar: Vertragskosten werden automatisch geteilt.
 
+### Benachrichtigungen & Plattform
+* Web Push über den eigenen Sync-Server (VAPID, verschlüsselt nach RFC 8291): neue
+  Ausgaben, Einkäufe, erledigte Aufgaben, Zahlungen an dich – und jeden Morgen eine
+  Erinnerung „Heute dran: …“ inklusive bald ablaufender Kündigungsfristen.
+* App-Icon-Badge mit offenen Aufgaben, Teilen-Ziel (Text aus anderen Apps landet auf der
+  Einkaufsliste), „Erinnern“-Knopf für offene Beträge mit PayPal-Link.
+* „Los geht’s“-Checkliste für neue WGs (Einladen, erste Ausgabe, Fixkosten, WLAN, Vertrag).
+
 ### WG-Hub
 * Kalender (Monatsansicht) mit Ebenen: Termine, Putzplan, Zahlungen, Fristen,
   Geburtstage. Termin-Typen: Party, Besuch, Handwerker, WG-Meeting, Abwesend.
@@ -151,8 +159,8 @@ Woche, Einladungs-Annahmequote.
 
 | Phase | Inhalt |
 | --- | --- |
-| **1.0 (dieses Repo)** | PWA, Sync-Server, alle Kernmodule, DE/EN, Hell/Dunkel, Offline |
-| 1.1 | Native Hüllen via Capacitor (App Store, Play Store), lokale Erinnerungen, Web-Push |
+| **1.0 (dieses Repo)** | PWA, Sync-Server, alle Kernmodule, DE/EN, Hell/Dunkel, Offline, Web Push & tägliche Erinnerungen |
+| 1.1 | Native Hüllen via Capacitor (App Store, Play Store), Kalender-Abo (iCal) für Putzplan & Termine |
 | 1.2 | Kassenbon-Scan (OCR), Fotos an Ausgaben/Notizen, Umfragen auf der Pinnwand |
 | 1.3 | Nebenkosten-Assistent (Jahresabrechnung aufteilen), Zählerstände, Inventar („Wem gehört der Toaster?“) |
 | 2.0 | Mehrere WGs, Ende-zu-Ende-Verschlüsselung des Sync, Widgets, Apple Watch/Wear OS |

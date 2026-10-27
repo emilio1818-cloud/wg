@@ -34,6 +34,8 @@ Kostenlos · Keine Werbung · Keine Tracker · Offline-fähig · Deutsch & Engli
 | 📌 **Pinnwand** | Sticky Notes mit Reaktionen, Hausregeln |
 | 📶 **WLAN** | QR-Code für Gäste |
 | 👋 **Einladen** | Code, Link, QR oder WhatsApp – ohne E-Mail, ohne Passwort; Platzhalter-Profile für alle, die noch keine App haben |
+| 🔔 **Benachrichtigungen** | Web Push, wenn Mitbewohnis etwas eintragen, und morgens „Heute dran: Bad putzen“ inkl. Fristwarnungen |
+| 📲 **Wie eine native App** | Installierbar, offline, App-Icon-Badge mit offenen Aufgaben, Teilen-Ziel (Zutatenliste aus einer Rezept-App → Einkaufsliste), Haptik, Dark Mode |
 
 Mehr zur Produktidee, Zielgruppe, Positionierung und Roadmap: **[docs/CONCEPT.md](docs/CONCEPT.md)**.
 

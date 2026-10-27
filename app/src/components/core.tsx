@@ -252,7 +252,7 @@ export function Field(props: { label?: Child; hint?: Child; error?: string | nul
 }
 
 export function SwitchRow(props: { title: Child; sub?: Child; on: boolean; onChange: (v: boolean) => void; lead?: Child }) {
-  return <Row class="multiline" lead={props.lead} title={props.title} sub={props.sub} end={<Switch on={props.on} onChange={props.onChange} />} />;
+  return <Row class="multiline" lead={props.lead} title={props.title} sub={props.sub} end={<Switch on={props.on} onChange={props.onChange} label={typeof props.title === 'string' ? props.title : undefined} />} />;
 }
 
 export function Check(props: { on: boolean; onClick?: (e: MouseEvent) => void; big?: boolean; color?: string; label?: string }) {

@@ -610,6 +610,8 @@ export const de = {
   'cal.deleted': 'Termin gelöscht',
   'cal.titleRequired': 'Wie heißt der Termin?',
   'cal.awayTitle': '{name} ist weg',
+  'cal.export': 'In Kalender exportieren',
+  'cal.exported': 'Kalender exportiert – öffne die Datei, um ihn zu importieren',
 
   'etype.party': 'Party',
   'etype.guest': 'Besuch',

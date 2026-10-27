@@ -205,6 +205,12 @@ describe('Nestly end-to-end', () => {
       const text = await d.page.locator('#app').innerText();
       assert.ok(text.length > 40, `route ${r} rendered content`);
     }
+    // Calendar export produces a valid iCalendar file.
+    await d.page.evaluate(() => (location.hash = '#/wg/calendar'));
+    const [download] = await Promise.all([d.page.waitForEvent('download'), d.page.getByRole('button', { name: 'Export to calendar' }).click()]);
+    assert.match(download.suggestedFilename(), /\.ics$/);
+    const ics = fs.readFileSync(await download.path(), 'utf8');
+    assert.match(ics, /BEGIN:VCALENDAR[\s\S]*BEGIN:VEVENT[\s\S]*END:VCALENDAR/);
     assert.deepEqual(d.errors, []);
     await d.ctx.close();
   });
