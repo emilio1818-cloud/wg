@@ -75,6 +75,17 @@ Notable modelling choices:
 
 Full protocol: [`SYNC_PROTOCOL.md`](SYNC_PROTOCOL.md).
 
+## Notifications
+
+The sync server doubles as a Web Push sender (`server/src/push.ts`, VAPID + RFC 8291
+encryption with `node:crypto` only). It is the one place where the server reads domain data:
+when a sync request creates new `activity` records it composes a short message
+(`push-text.ts`, German/English) for every other member's subscribed devices, and a timer
+sends each member one morning reminder with their due chores and close contract deadlines
+(`reminders.ts`, using the household's IANA time zone). The service worker displays the
+notification and deep-links into the right screen. Without a server (local mode) the app
+falls back to in-page notifications while it is open.
+
 ## Security & privacy
 
 * No accounts: joining yields a random 256-bit bearer token per device; the server stores
