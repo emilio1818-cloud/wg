@@ -5,7 +5,7 @@ import { computeShares, distribute, formatMoney, parseAmount, validateSplit } fr
 import { computeBalances, expenseImpact, isValidIban, paypalLink, simplifyDebts, spendingStats } from '../src/balances.ts';
 import { dueOccurrences, monthlyEquivalent, nextDue, occurrence, recurringExpenseId, recurringToExpense } from '../src/recurring.ts';
 import { choreState, completeChore, isAway, leaderboard, nextAssignee, nextDueDate, weeklyStreak } from '../src/chores.ts';
-import { cancellationLetter, contractStatus } from '../src/contracts.ts';
+import { cancellableAnyTime, cancellationLetter, contractStatus, deadlineDaysLeft } from '../src/contracts.ts';
 import { categorizeItem, expenseCategoryForItems, listKind, parseItemInput } from '../src/shopping.ts';
 import { guessExpenseCategory } from '../src/categories.ts';
 import { formatInviteCode, normalizeInviteCode, uid } from '../src/ids.ts';
@@ -326,6 +326,28 @@ describe('contracts', () => {
     assert.equal(s2.termEnd, '2026-12-31');
     assert.equal(s2.cancelBy, '2026-09-30');
     assert.equal(s2.urgency, 'urgent');
+  });
+  it('tells the last day of a deadline apart from "cancel any time"', () => {
+    // Last day to cancel before the minimum term ends: a real (urgent) deadline.
+    const lastDay = contractStatus(internet, '2027-02-14');
+    assert.equal(lastDay.daysLeft, 0);
+    assert.equal(lastDay.urgency, 'urgent');
+    assert.equal(cancellableAnyTime(lastDay), false);
+    assert.equal(deadlineDaysLeft(lastDay), 0);
+    // A day later the deadline has passed; without renewals the contract is cancellable any time.
+    const after = contractStatus(internet, '2027-02-15');
+    assert.equal(after.phase, 'minTerm');
+    assert.equal(after.daysLeft, 0);
+    assert.equal(cancellableAnyTime(after), true);
+    assert.equal(deadlineDaysLeft(after), null);
+    assert.equal(cancellableAnyTime(contractStatus(internet, '2027-06-01')), true);
+    assert.equal(deadlineDaysLeft(contractStatus(internet, '2026-10-27')), 110);
+    // With fixed renewals the last day is a deadline too.
+    const insurance: Contract = { ...internet, startDate: '2024-01-01', minTermMonths: 12, renewalMonths: 12, noticeValue: 3 };
+    const renewLast = contractStatus(insurance, '2026-09-30');
+    assert.equal(renewLast.phase, 'renewing');
+    assert.equal(deadlineDaysLeft(renewLast), 0);
+    assert.equal(deadlineDaysLeft(contractStatus({ ...internet, cancelled: true, endDate: '2027-03-14' }, '2026-10-27')), null);
   });
   it('handles cancelled, ended and unknown contracts', () => {
     assert.equal(contractStatus({ ...internet, cancelled: true, endDate: '2026-12-31' }, '2026-10-27').phase, 'cancelled');

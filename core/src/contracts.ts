@@ -104,6 +104,22 @@ export function contractStatus(c: Contract, todayDate: ISODate): ContractStatus 
   return { phase: 'unknown', urgency: 'none' };
 }
 
+/**
+ * True when the contract can be ended at any time with its notice period, so there is
+ * no deadline to watch. Note that `daysLeft === 0` alone is ambiguous: it also marks the
+ * last day of a real deadline (urgency 'urgent'), after which the contract renews.
+ */
+export function cancellableAnyTime(s: ContractStatus): boolean {
+  if (s.phase === 'openEnded') return true;
+  return s.phase === 'minTerm' && s.daysLeft === 0 && s.urgency === 'none';
+}
+
+/** Days until the next cancellation deadline (0 = today is the last day), or null when there is none. */
+export function deadlineDaysLeft(s: ContractStatus): number | null {
+  if (s.phase === 'cancelled' || s.phase === 'ended' || !s.cancelBy || s.daysLeft == null || s.daysLeft < 0) return null;
+  return cancellableAnyTime(s) ? null : s.daysLeft;
+}
+
 export interface ContractTemplate {
   category: ContractCategory;
   emoji: string;
