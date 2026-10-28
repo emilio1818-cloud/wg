@@ -2,8 +2,9 @@ name: Deploy web app to GitHub Pages
 
 # The static app works fully offline on this device ("local mode"). Set the
 # repository variable NESTLY_SERVER_URL to a running sync server to enable
-# invites and syncing. Enable Pages (Settings → Pages → Source: GitHub Actions)
-# and set the repository variable DEPLOY_PAGES=true to deploy on every push.
+# invites and syncing. Enable Pages (Settings → Pages → Source: GitHub Actions);
+# every push to main then deploys. Set the repository variable DEPLOY_PAGES=false
+# to deploy only when the workflow is started by hand.
 on:
   push:
     branches: [main]
@@ -20,7 +21,7 @@ concurrency:
 
 jobs:
   deploy:
-    if: vars.DEPLOY_PAGES == 'true' || github.event_name == 'workflow_dispatch'
+    if: vars.DEPLOY_PAGES != 'false' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

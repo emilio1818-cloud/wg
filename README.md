@@ -90,8 +90,9 @@ liegt eine `fly.toml` bei.
 
 **Nur die App, ohne Server** (z. B. GitHub Pages): Die App funktioniert dann vollständig
 offline auf einem Gerät; Einladungen und Sync lassen sich später in der App mit einem
-Server verbinden. Der Workflow `.github/workflows/pages.yml` deployt auf Pages, sobald die
-Repository-Variable `DEPLOY_PAGES=true` gesetzt ist.
+Server verbinden. Der Workflow `.github/workflows/pages.yml` deployt jeden Push auf `main`
+nach Pages (live: <https://emilio1818-cloud.github.io/wg/>); mit der Repository-Variable
+`DEPLOY_PAGES=false` nur noch bei manuellem Start.
 
 ## In die App Stores
 
