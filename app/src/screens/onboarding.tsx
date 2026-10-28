@@ -1,11 +1,10 @@
 import { h, Fragment, useEffect, useState } from '../lib/ui.ts';
 import { navigate } from '../lib/router.ts';
 import { AVATAR_EMOJIS, HOUSEHOLD_EMOJIS, MEMBER_COLORS } from '../../../core/src/categories.ts';
-import { CHORE_TEMPLATES } from '../../../core/src/chores.ts';
 import { formatInviteCode, normalizeInviteCode } from '../../../core/src/ids.ts';
 import { t } from '../i18n/index.ts';
 import type { Key } from '../i18n/index.ts';
-import { freqLabel } from '../i18n/format.ts';
+import type { IconName } from '../lib/icons.ts';
 import * as api from '../state/api.ts';
 import { createHousehold, joinHousehold } from '../state/actions.ts';
 import { loadDemo } from '../state/demo.ts';
@@ -14,7 +13,6 @@ import { store } from '../state/store.ts';
 import { prefs } from '../state/prefs.ts';
 import { Avatar, Button, ColorRow, cx, EmojiGrid, Field, Icon, IconButton } from '../components/core.tsx';
 import { confetti, confirmDialog, toast } from '../components/overlays.tsx';
-import { InvitePanel } from '../components/invite.tsx';
 import { LogoGlyph } from '../components/brand.tsx';
 
 void Fragment;
@@ -100,8 +98,6 @@ function StepHeader(props: { step: number; total: number; onBack: () => void }) 
   );
 }
 
-const STARTER_CHORES = ['kitchen', 'bathroom', 'vacuum', 'trash', 'glass', 'plants', 'dishwasher', 'mop', 'bottles', 'fridge'];
-
 export function CreateFlow() {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
@@ -109,54 +105,64 @@ export function CreateFlow() {
   const [color, setColor] = useState(MEMBER_COLORS[0]!);
   const [wgName, setWgName] = useState('');
   const [wgEmoji, setWgEmoji] = useState(HOUSEHOLD_EMOJIS[0]!);
-  const [roommates, setRoommates] = useState<string[]>([]);
-  const [draft, setDraft] = useState('');
-  const [chores, setChores] = useState<string[]>(['kitchen', 'bathroom', 'vacuum', 'trash']);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
   const back = () => (step === 0 ? navigate('/welcome', { replace: true }) : setStep(step - 1));
-  const canNext = step === 0 ? name.trim().length > 0 : step === 1 ? wgName.trim().length > 0 : true;
-
-  const addRoommate = () => {
-    const n = draft.trim();
-    if (!n) return;
-    setRoommates([...roommates, n]);
-    setDraft('');
-  };
+  const canNext = step === 0 ? name.trim().length > 0 : wgName.trim().length > 0;
 
   const finish = async () => {
+    if (!canNext || busy) return;
     if (store.session && store.session.mode !== 'demo') {
       const ok = await confirmDialog({ title: t('settings.leaveTitle'), message: t('settings.leaveSub'), confirm: t('create.finish'), emoji: '🏠' });
       if (!ok) return;
     }
     setBusy(true);
     try {
-      const all = draft.trim() ? [...roommates, draft.trim()] : roommates;
-      await createHousehold({ myName: name, myEmoji: emoji, myColor: color, wgName, wgEmoji, roommates: all, chores });
+      await createHousehold({ myName: name, myEmoji: emoji, myColor: color, wgName, wgEmoji, roommates: [], chores: [] });
     } catch {
-      /* stays local; invite screen offers to connect later */
+      /* stays local; the invite screen offers to connect later */
     }
     setBusy(false);
     setDone(true);
-    setTimeout(() => confetti(innerWidth / 2, innerHeight * 0.3, 40), 150);
   };
 
   if (done) {
+    const items: { icon: IconName; key: Key }[] = [
+      { icon: 'users', key: 'setup.members.title' },
+      { icon: 'banknote', key: 'setup.costs.title' },
+      { icon: 'sparkles', key: 'setup.chores.title' },
+      { icon: 'wifi', key: 'setup.wifi.title' },
+    ];
     return (
       <div class="welcome">
-        <Blobs />
-        <div class="center" style={{ marginTop: '20px' }}>
-          <div style={{ fontSize: '58px' }}>🎉</div>
+        <div style={{ marginTop: '28px' }}>
+          <span class="tile xl" style={{ background: 'var(--card)', boxShadow: 'var(--shadow)', fontSize: '44px', width: '84px', height: '84px', borderRadius: '26px' }}>
+            {wgEmoji}
+          </span>
           <h1 class="step-title">{t('create.doneTitle')}</h1>
-          <p class="muted" style={{ margin: '0 auto 22px', maxWidth: '330px' }}>
+          <p class="muted" style={{ marginTop: 0, maxWidth: '360px' }}>
             {t('create.doneSub')}
           </p>
         </div>
-        <InvitePanel />
-        <div style={{ marginTop: 'auto', paddingTop: '20px' }}>
-          <Button variant="brand" block onClick={() => navigate('/', { replace: true })}>
-            {t('create.goHome')}
+        <div class="list mt-16">
+          {items.map((it) => (
+            <div key={it.key} class="row compact">
+              <span class="tile sm" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
+                <Icon name={it.icon} size={18} />
+              </span>
+              <div class="main">
+                <div class="title">{t(it.key)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="stack" style={{ marginTop: 'auto', paddingTop: '24px' }}>
+          <Button variant="primary" block onClick={() => navigate('/setup', { replace: true })}>
+            {t('create.startSetup')}
+          </Button>
+          <Button variant="ghost" block onClick={() => navigate('/', { replace: true })}>
+            {t('create.skipSetup')}
           </Button>
         </div>
       </div>
@@ -165,7 +171,7 @@ export function CreateFlow() {
 
   return (
     <div class="welcome">
-      <StepHeader step={step} total={4} onBack={back} />
+      <StepHeader step={step} total={2} onBack={back} />
       <div key={step} class="fade-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         {step === 0 ? (
           <>
@@ -194,7 +200,7 @@ export function CreateFlow() {
               <ColorRow options={MEMBER_COLORS} value={color} onChange={setColor} />
             </div>
           </>
-        ) : step === 1 ? (
+        ) : (
           <>
             <h1 class="step-title">{t('create.step2.title')}</h1>
             <p class="muted" style={{ marginTop: 0 }}>
@@ -213,7 +219,7 @@ export function CreateFlow() {
                 autoFocus
                 maxLength={50}
                 onInput={(e: any) => setWgName(e.target.value)}
-                onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && canNext && setStep(2)}
+                onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && finish()}
               />
             </Field>
             <div class="chips" style={{ marginBottom: '18px' }}>
@@ -225,74 +231,14 @@ export function CreateFlow() {
             </div>
             <EmojiGrid options={HOUSEHOLD_EMOJIS} value={wgEmoji} onChange={setWgEmoji} />
           </>
-        ) : step === 2 ? (
-          <>
-            <h1 class="step-title">{t('create.step3.title')}</h1>
-            <p class="muted" style={{ marginTop: 0 }}>
-              {t('create.step3.sub')}
-            </p>
-            <div class="list" style={{ margin: '8px 0 14px' }}>
-              <div class="row compact">
-                <Avatar member={{ name, emoji, color }} size={34} />
-                <div class="main">
-                  <div class="title">
-                    {name} <span class="faint">({t('common.you')})</span>
-                  </div>
-                </div>
-              </div>
-              {roommates.map((r, i) => (
-                <div key={r + i} class="row compact">
-                  <Avatar member={{ name: r, color: MEMBER_COLORS[(MEMBER_COLORS.indexOf(color) + i + 1) % MEMBER_COLORS.length]! }} size={34} />
-                  <div class="main">
-                    <div class="title">{r}</div>
-                  </div>
-                  <IconButton icon="x" label={t('common.delete')} variant="plain" size={18} onClick={() => setRoommates(roommates.filter((_, j) => j !== i))} />
-                </div>
-              ))}
-            </div>
-            <div class="input-group">
-              <input
-                class="input"
-                placeholder={t('create.roommatePlaceholder')}
-                value={draft}
-                autoFocus
-                maxLength={40}
-                onInput={(e: any) => setDraft(e.target.value)}
-                onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && addRoommate()}
-              />
-              <span class="addon">
-                <IconButton icon="plus" label={t('common.add')} onClick={addRoommate} style={{ background: 'var(--primary)', color: '#fff' }} />
-              </span>
-            </div>
-          </>
-        ) : (
-          <>
-            <h1 class="step-title">{t('create.step4.title')}</h1>
-            <p class="muted" style={{ marginTop: 0 }}>
-              {t('create.step4.sub')}
-            </p>
-            <div class="template-grid" style={{ marginTop: '8px' }}>
-              {STARTER_CHORES.map((key) => {
-                const tpl = CHORE_TEMPLATES.find((c) => c.key === key)!;
-                const on = chores.includes(key);
-                return (
-                  <button key={key} type="button" class={on ? 'active' : ''} onClick={() => setChores(on ? chores.filter((c) => c !== key) : [...chores, key])}>
-                    <span class="e">{tpl.emoji}</span>
-                    {t(`tpl.${key}` as Key)}
-                    <span class="caption">{freqLabel(tpl.frequency)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </>
         )}
         <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
-          {step < 3 ? (
-            <Button variant="primary" block disabled={!canNext} onClick={() => setStep(step + 1)}>
-              {step === 2 && roommates.length === 0 && !draft.trim() ? t('common.skip') : t('common.next')}
+          {step === 0 ? (
+            <Button variant="primary" block disabled={!canNext} onClick={() => setStep(1)}>
+              {t('common.next')}
             </Button>
           ) : (
-            <Button variant="brand" block disabled={busy} onClick={finish}>
+            <Button variant="primary" block disabled={busy || !canNext} onClick={finish}>
               {busy ? t('create.creating') : t('create.finish')}
             </Button>
           )}

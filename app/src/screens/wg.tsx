@@ -13,6 +13,7 @@ import { copyText, Sheet, toast } from '../components/overlays.tsx';
 import { QrCode } from '../components/charts.tsx';
 import { ActivityRow } from '../components/activity.tsx';
 import { openInvite } from './members.tsx';
+import { openSetup } from './setup.tsx';
 
 void Fragment;
 
@@ -76,6 +77,7 @@ export function WgHub() {
         <Row lead={<Tile icon="repeat" color="var(--green)" />} title={t('wg.recurring')} onClick={() => navigate('/money?tab=recurring')} chevron />
         <Row lead={<Tile icon="users" color="var(--blue)" />} title={t('wg.members')} onClick={() => navigate('/wg/members')} chevron />
         <Row lead={<Tile icon="home" color="var(--primary)" />} title={t('wg.info')} onClick={() => navigate('/wg/info')} chevron />
+        <Row lead={<Tile icon="sparkles" color="var(--violet)" />} title={t('wg.setup')} onClick={openSetup} chevron />
         <Row lead={<Tile icon="bell" color="var(--amber)" />} title={t('wg.activity')} onClick={() => navigate('/activity')} chevron />
       </div>
 

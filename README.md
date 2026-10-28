@@ -24,6 +24,7 @@ Kostenlos · Keine Werbung · Keine Tracker · Offline-fähig · Deutsch & Engli
 
 | | |
 | --- | --- |
+| 🧭 **Einrichtung** | Assistent nach dem Gründen: Wohnung & Vermietung, Mitbewohnis + Einladung, Miete & Fixkosten (Strom, Internet, Rundfunk …), Putzplan mit Putztag, Einkaufslisten, WLAN – jeder Schritt überspringbar, jederzeit fortsetzbar |
 | 🏠 **Zuhause** | Saldo, eigene Aufgaben zum Abhaken, Schnellaktionen, Bento-Übersicht, Fristen-Warnungen, Neuigkeiten |
 | 💸 **Finanzen** | Ausgaben gleich / nach Anteilen / Beträgen / Prozent teilen, Salden, Ausgleich mit minimaler Anzahl Überweisungen, PayPal.me & IBAN, Statistik, CSV-Export |
 | 🔁 **Fixkosten** | Miete, Strom, Internet, Abos werden am Fälligkeitstag automatisch gebucht und geteilt |

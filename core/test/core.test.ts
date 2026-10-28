@@ -50,6 +50,18 @@ describe('dates', () => {
     assert.equal(grid[0]![0], '2026-09-28');
     assert.ok(grid.flat().includes('2026-10-31'));
   });
+  it('finds the next day of month and weekday', async () => {
+    const { nextMonthDay, nextWeekday } = await import('../src/dates.ts');
+    assert.equal(nextMonthDay('2026-10-28', 1), '2026-11-01');
+    assert.equal(nextMonthDay('2026-10-28', 28), '2026-10-28');
+    assert.equal(nextMonthDay('2026-10-28', 30), '2026-10-30');
+    assert.equal(nextMonthDay('2026-01-31', 31), '2026-01-31');
+    assert.equal(nextMonthDay('2026-02-10', 31), '2026-02-28');
+    assert.equal(nextMonthDay('2026-12-15', 3), '2027-01-03');
+    assert.equal(nextWeekday('2026-10-28', 2), '2026-10-28'); // Wednesday
+    assert.equal(nextWeekday('2026-10-28', 5), '2026-10-31');
+    assert.equal(nextWeekday('2026-10-28', 0), '2026-11-02');
+  });
   it('finds the next birthday', () => {
     assert.equal(nextAnnual('11-03', '2026-10-27'), '2026-11-03');
     assert.equal(nextAnnual('01-05', '2026-10-27'), '2027-01-05');

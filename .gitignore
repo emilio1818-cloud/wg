@@ -7,3 +7,4 @@ server/data/
 coverage/
 tests/e2e/screenshots/
 *.log
+.claude/worktrees/

@@ -14,6 +14,7 @@ import type {
   Contract,
   Expense,
   ID,
+  ISODate,
   Member,
   Note,
   Recurring,
@@ -284,6 +285,11 @@ export function saveChore(data: New<Chore>, existingId?: ID): Chore {
   return c;
 }
 
+/** Adds a batch of chores (setup assistant) without flooding the activity feed. */
+export function addChores(data: New<Chore>[]): void {
+  data.forEach((d) => put('chores', stamp(d) as Chore));
+}
+
 /** Marks a chore done (or skipped). Returns an undo function. */
 export function finishChore(choreId: ID, action: 'done' | 'skipped' = 'done', memberId: ID = myId()): () => void {
   const chore = get('chores', choreId);
@@ -382,19 +388,19 @@ export function finishShopping(listId: ID, expense: { amount: Cents; paidBy: ID 
 /* Contracts, calendar, board                                          */
 /* ------------------------------------------------------------------ */
 
-export function saveContract(data: New<Contract>, existingId?: ID, linkRecurring = false): Contract {
+export function saveContract(data: New<Contract>, existingId?: ID, linkRecurring = false, firstBooking?: ISODate): Contract {
   let c: Contract;
   if (existingId) c = update('contracts', existingId, data as Partial<Contract>)!;
   else {
     c = put('contracts', stamp(data) as Contract);
     logActivity('contract_added', { title: c.name, emoji: c.emoji, targetId: c.id });
   }
-  syncContractRecurring(c, linkRecurring);
+  syncContractRecurring(c, linkRecurring, firstBooking);
   return c;
 }
 
 /** Keeps the linked recurring payment in line with the contract's monthly cost. */
-function syncContractRecurring(c: Contract, link: boolean): void {
+function syncContractRecurring(c: Contract, link: boolean, firstBooking?: ISODate): void {
   const existing = c.recurringId ? get('recurring', c.recurringId) : undefined;
   if (!link || !c.monthlyCost) {
     if (existing && !link) update('recurring', existing.id, { active: false });
@@ -412,14 +418,13 @@ function syncContractRecurring(c: Contract, link: boolean): void {
     update('recurring', existing.id, base);
     return;
   }
-  const nextMonth = addDays(today(), 1);
   const r = saveRecurring({
     ...base,
     paidBy: c.holderId ?? myId(),
     splitMode: 'equal',
     split: members().map((m) => ({ memberId: m.id, value: 1 })),
     frequency: { unit: 'month', every: 1 },
-    startDate: nextMonth,
+    startDate: firstBooking ?? addDays(today(), 1),
     autoBook: true,
     contractId: c.id,
   });

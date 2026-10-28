@@ -45,6 +45,8 @@ export interface Household extends BaseEntity {
   landlordEmail?: string;
   /** IANA time zone, used by the server to send reminders at a sensible local time. */
   timezone?: string;
+  /** The setup assistant was completed (by any member). */
+  setupDone?: boolean;
 }
 
 export interface Member extends BaseEntity {

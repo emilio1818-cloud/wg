@@ -26,6 +26,7 @@ import { CalendarScreen } from './screens/calendar.tsx';
 import { Board } from './screens/board.tsx';
 import { Members, MemberDetail } from './screens/members.tsx';
 import { Settings } from './screens/settings.tsx';
+import { SetupWizard } from './screens/setup.tsx';
 import { choresDueForMe } from './screens/chores.tsx';
 import { openQuickAdd } from './screens/shopping.tsx';
 
@@ -170,6 +171,8 @@ function App() {
   if (first === 'join') content = <JoinFlow code={code} />;
   else if (!session || first === 'welcome' || first === 'create') {
     content = first === 'create' ? <CreateFlow /> : <Welcome />;
+  } else if (first === 'setup') {
+    content = <SetupWizard step={code} />;
   } else {
     content = routeScreen(route.segments);
     withTabs = true;

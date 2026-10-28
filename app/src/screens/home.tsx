@@ -6,18 +6,16 @@ import { monthlyEquivalent, nextDue } from '../../../core/src/recurring.ts';
 import { leaderboard } from '../../../core/src/chores.ts';
 import { startOfMonth } from '../../../core/src/dates.ts';
 import { t, tp } from '../i18n/index.ts';
-import type { Key } from '../i18n/index.ts';
 import { fmtDate, greeting, money, relDay } from '../i18n/format.ts';
 import { list, store } from '../state/store.ts';
 import { syncState } from '../state/sync.ts';
 import { leaveHousehold } from '../state/actions.ts';
 import { activeItemsCount, firstName, household, me, members, myBalance, myId, settleTransfers, sortedActivity } from '../state/selectors.ts';
 import { prefs, setPrefs } from '../state/prefs.ts';
-import { Avatar, AvatarStack, Button, Icon, IconButton, Progress, SectionTitle } from '../components/core.tsx';
+import { Avatar, AvatarStack, Button, Icon, IconButton, SectionTitle } from '../components/core.tsx';
 import type { IconName } from '../lib/icons.ts';
 import { ActivityRow } from '../components/activity.tsx';
-import { openExpenseEditor, openRecurringEditor, openSettle } from './money.tsx';
-import { openContractEditor } from './contracts.tsx';
+import { openExpenseEditor, openSettle } from './money.tsx';
 import { ChoreRow, choresDueForMe } from './chores.tsx';
 import { openChoreEditor } from './chores.tsx';
 import { openQuickAdd } from './shopping.tsx';
@@ -25,6 +23,7 @@ import { openEventEditor } from './calendar.tsx';
 import { openInvite } from './members.tsx';
 import { openWifi } from './wg.tsx';
 import { InstallBanner, NotifyBanner } from '../components/install.tsx';
+import { SetupBanner, setupBannerVisible } from './setup.tsx';
 
 void Fragment;
 
@@ -164,53 +163,6 @@ function Overview() {
   );
 }
 
-function startSteps(): { key: Key; done: boolean; run: () => void }[] | null {
-  const hh = household();
-  if (!hh || store.session?.mode === 'demo' || prefs.dismissed.includes('start')) return null;
-  if (Date.now() - hh.createdAt > 30 * 86_400_000) return null;
-  const steps: { key: Key; done: boolean; run: () => void }[] = [
-    { key: 'start.invite', done: members().filter((m) => m.claimed).length >= 2, run: () => openInvite() },
-    { key: 'start.expense', done: list('expenses').some((e) => e.kind === 'expense'), run: () => openExpenseEditor() },
-    { key: 'start.recurring', done: list('recurring').length > 0, run: () => openRecurringEditor() },
-    { key: 'start.chore', done: list('choreLogs').length > 0, run: () => navigate('/chores') },
-    { key: 'start.wifi', done: !!hh.wifiSsid, run: () => navigate('/wg/wifi') },
-    { key: 'start.contract', done: list('contracts').length > 0, run: () => openContractEditor() },
-  ];
-  return steps.every((s) => s.done) ? null : steps;
-}
-
-/** Activation checklist for young flats: the steps that make Nestly stick. */
-function StartChecklist() {
-  const steps = startSteps();
-  if (!steps) return null;
-  const done = steps.filter((s) => s.done).length;
-  return (
-    <>
-      <SectionTitle title={`🚀 ${t('start.title')}`} />
-      <div class="card" style={{ padding: '14px 16px 6px' }}>
-        <div class="hstack" style={{ justifyContent: 'space-between' }}>
-          <span class="caption">{t('start.progress', { done, total: steps.length })}</span>
-          <IconButton icon="x" label={t('common.close')} variant="plain" size={16} onClick={() => setPrefs({ dismissed: [...prefs.dismissed, 'start'] })} style={{ width: '28px', height: '28px' }} />
-        </div>
-        <Progress value={done / steps.length} color="var(--green)" />
-        <div style={{ margin: '8px -16px 0' }}>
-          {steps.map((step) => (
-            <button key={step.key} type="button" class="row compact" onClick={step.run} disabled={step.done} style={step.done ? { opacity: 0.55 } : undefined}>
-              <span class={step.done ? 'check on' : 'check'} style={{ width: '24px', height: '24px' }}>
-                <Icon name="check" size={14} stroke={3} />
-              </span>
-              <div class="main">
-                <div class="title" style={{ fontSize: '15px', textDecoration: step.done ? 'line-through' : undefined }}>{t(step.key)}</div>
-              </div>
-              {step.done ? null : <Icon name="chevronRight" size={17} class="chev" />}
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
-  );
-}
-
 function DeadlineBanners() {
   const T = today();
   const urgent = list('contracts')
@@ -308,7 +260,7 @@ export function Home() {
             {t('home.demoCta')}
           </Button>
         </div>
-      ) : alone && !startSteps() ? (
+      ) : alone && !setupBannerVisible() ? (
         <button type="button" class="banner info mb-12" onClick={() => openInvite()}>
           <span class="b-emoji">💌</span>
           <div class="b-main">
@@ -341,10 +293,9 @@ export function Home() {
       </div>
 
       <DeadlineBanners />
+      <SetupBanner />
       <NotifyBanner />
       <InstallBanner />
-
-      <StartChecklist />
 
       <SectionTitle title={t('home.forYou')} action={forMe.length ? t('home.seeAll') : undefined} onAction={() => navigate('/chores')} />
       {forMe.length ? (

@@ -140,6 +140,19 @@ export function monthGrid(monthAnyDay: ISODate): ISODate[][] {
   return weeks;
 }
 
+/** Next date on or after `from` that falls on `day` of a month (clamped to short months). */
+export function nextMonthDay(from: ISODate, day: number): ISODate {
+  const { y, m, d } = parseDate(from);
+  const thisMonth = `${y}-${pad2(m)}-${pad2(Math.min(day, daysInMonth(y, m)))}`;
+  if (Math.min(day, daysInMonth(y, m)) >= d) return thisMonth;
+  return addMonths(`${y}-${pad2(m)}-01`, 1, day);
+}
+
+/** Next date on or after `from` that is the given weekday (0 = Monday … 6 = Sunday). */
+export function nextWeekday(from: ISODate, weekday: number): ISODate {
+  return addDays(from, (weekday - weekdayIndex(from) + 7) % 7);
+}
+
 /** Next occurrence of an annual `MM-DD` date on or after `from`. */
 export function nextAnnual(mmdd: string, from: ISODate): ISODate {
   const { y } = parseDate(from);
