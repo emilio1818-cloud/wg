@@ -195,38 +195,26 @@ svg {
   padding-bottom: calc(var(--safe-bottom) + 34px);
 }
 
-.screen-enter {
-  animation: screenIn 0.32s var(--ease) both;
-}
-
-.screen-back {
-  animation: screenBack 0.28s var(--ease) both;
+/*
+ * Route transitions only fade. A transform on the screen wrapper – even the identity
+ * matrix a finished `fill-mode: both` animation leaves behind – turns it into the
+ * containing block of `position: fixed` children, which pushed the floating action
+ * button to the end of long pages instead of the bottom of the viewport.
+ */
+.screen-enter,
+.screen-back,
+.screen-fade {
+  animation: screenIn 0.22s var(--ease) backwards;
 }
 
 @keyframes screenIn {
   from {
     opacity: 0;
-    transform: translateX(26px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes screenBack {
-  from {
-    opacity: 0;
-    transform: translateX(-18px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 
 .fade-in {
-  animation: fadeIn 0.3s var(--ease) both;
+  animation: fadeIn 0.3s var(--ease) backwards;
 }
 
 @keyframes fadeIn {
@@ -2385,7 +2373,7 @@ body:has(.fab) .toast-wrap {
   border-radius: 16px;
   padding: 14px;
   box-shadow: var(--shadow);
-  animation: fadeIn 0.5s var(--ease) both;
+  animation: fadeIn 0.5s var(--ease) backwards;
 }
 
 .feature .fe {

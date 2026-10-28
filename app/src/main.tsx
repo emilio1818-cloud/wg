@@ -180,7 +180,7 @@ function App() {
   const dir = navDirection();
   return (
     <div>
-      <div key={route.path} class={cx(dir === 'back' ? 'screen-back' : dir === 'forward' ? 'screen-enter' : 'fade-in')}>
+      <div key={route.path} class={cx(dir === 'back' ? 'screen-back' : dir === 'forward' ? 'screen-enter' : 'screen-fade')}>
         {content}
       </div>
       {withTabs ? <TabBar path={route.path} /> : null}

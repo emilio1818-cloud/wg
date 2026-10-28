@@ -20,6 +20,8 @@ export const syncState = {
 let running = false;
 let again = false;
 let timer: ReturnType<typeof setTimeout> | null = null;
+/** When the pending `timer` fires (ms since epoch). */
+let timerAt = 0;
 let failures = 0;
 let source: EventSource | null = null;
 const afterSyncHooks: (() => void)[] = [];
@@ -40,13 +42,24 @@ export function isCloud(): boolean {
   return !!s && s.mode === 'cloud' && !!s.token && !!s.serverUrl;
 }
 
-export function scheduleSync(delay = 400): void {
-  if (!isCloud()) return;
+function setTimer(delay: number): void {
   if (timer) clearTimeout(timer);
+  timerAt = Date.now() + delay;
   timer = setTimeout(() => {
     timer = null;
     void syncNow();
   }, delay);
+}
+
+/**
+ * Syncs soon. A burst of writes is batched into one round trip, but a sync that is
+ * already due earlier is never pushed back: as a plain debounce, a steady stream of
+ * writes (quick taps through the setup assistant) postponed the upload until it stopped.
+ */
+export function scheduleSync(delay = 400): void {
+  if (!isCloud()) return;
+  if (timer && timerAt <= Date.now() + delay) return;
+  setTimer(delay);
 }
 
 export async function syncNow(): Promise<void> {
@@ -90,8 +103,7 @@ export async function syncNow(): Promise<void> {
       setStatus(e.status === 0 ? 'offline' : 'error');
       // Exponential backoff up to 2 minutes.
       const delay = Math.min(120_000, 2000 * 2 ** Math.min(failures, 6));
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => void syncNow(), delay);
+      setTimer(delay);
     }
   } finally {
     running = false;

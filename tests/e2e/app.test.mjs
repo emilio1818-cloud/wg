@@ -359,6 +359,13 @@ describe('Nestly end-to-end', () => {
     await stromCost().getByText('Nächste Buchung', { exact: false }).waitFor();
     await page.evaluate(() => (location.hash = '#/wg/contracts'));
     await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).waitFor();
+
+    // The floating action button stays in view on long screens (it used to sit at the end of the page).
+    await page.evaluate(() => (location.hash = '#/wg/calendar'));
+    await page.locator('.fab').waitFor();
+    await page.waitForTimeout(400);
+    const fab = await page.locator('.fab').boundingBox();
+    assert.ok(fab && fab.y + fab.height <= 844, `FAB visible (bottom at ${fab && fab.y + fab.height})`);
     assert.deepEqual(d.errors, []);
     await d.ctx.close();
   });
