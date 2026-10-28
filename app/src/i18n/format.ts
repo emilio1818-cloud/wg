@@ -17,6 +17,11 @@ export function money(cents: Cents, opts: { sign?: boolean; compact?: boolean } 
   return formatMoney(cents, currency, intlLocale(), opts);
 }
 
+/** Percentage of a 0..1 ratio in the locale's style ("18 %" in German, "18%" in English). */
+export function percent(ratio: number, opts: { sign?: boolean } = {}): string {
+  return new Intl.NumberFormat(intlLocale(), { style: 'percent', maximumFractionDigits: 0, signDisplay: opts.sign ? 'exceptZero' : 'auto' }).format(ratio);
+}
+
 /** Whether the currency symbol precedes the amount in the current locale ("€5" vs "5 €"). */
 export function currencyBefore(): boolean {
   const parts = new Intl.NumberFormat(intlLocale(), { style: 'currency', currency }).formatToParts(1);
@@ -37,6 +42,7 @@ const dateFormats: Record<string, Intl.DateTimeFormatOptions> = {
   dayMonthLong: { day: 'numeric', month: 'long' },
   weekday: { weekday: 'short', day: 'numeric', month: 'short' },
   monthYear: { month: 'long', year: 'numeric' },
+  monthYearShort: { month: 'short', year: 'numeric' },
   month: { month: 'short' },
   weekdayShort: { weekday: 'short' },
 };

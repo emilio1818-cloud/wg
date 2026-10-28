@@ -19,6 +19,7 @@ import { openExpenseEditor, openSettle } from './money.tsx';
 import { ChoreRow, choresDueForMe } from './chores.tsx';
 import { openChoreEditor } from './chores.tsx';
 import { openQuickAdd } from './shopping.tsx';
+import { deadlineAlert, warnDeadline } from './contracts.tsx';
 import { openEventEditor } from './calendar.tsx';
 import { openInvite } from './members.tsx';
 import { openWifi } from './wg.tsx';
@@ -103,7 +104,7 @@ function Overview() {
   const contracts = list('contracts');
   const deadlines = contracts
     .map((c) => ({ c, s: contractStatus(c, T) }))
-    .filter((x) => x.s.cancelBy && x.s.daysLeft != null && x.s.daysLeft > 0 && (x.s.urgency === 'soon' || x.s.urgency === 'urgent'))
+    .filter((x) => warnDeadline(x.s) != null)
     .sort((a, b) => a.s.daysLeft! - b.s.daysLeft!);
   const events = list('events')
     .filter((e) => (e.endDate ?? e.date) >= T)
@@ -139,7 +140,15 @@ function Overview() {
         icon="file"
         accent="var(--violet)"
         label={t('home.tile.contracts')}
-        value={deadlines.length ? `⏳ ${deadlines[0]!.s.daysLeft} ${tp('unit.day', deadlines[0]!.s.daysLeft!)}` : contracts.length ? String(contracts.length) : '–'}
+        value={
+          deadlines.length
+            ? deadlines[0]!.s.daysLeft
+              ? `${deadlines[0]!.s.daysLeft} ${tp('unit.day', deadlines[0]!.s.daysLeft!)}`
+              : t('contract.lastDay')
+            : contracts.length
+              ? String(contracts.length)
+              : '–'
+        }
         sub={deadlines.length ? `${deadlines[0]!.c.emoji ?? '📄'} ${deadlines[0]!.c.name}` : contracts.length ? t('home.tile.contractsOk') : t('home.tile.contractsEmpty')}
         onClick={() => navigate(deadlines.length ? `/wg/contracts/${deadlines[0]!.c.id}` : '/wg/contracts')}
       />
@@ -167,7 +176,7 @@ function DeadlineBanners() {
   const T = today();
   const urgent = list('contracts')
     .map((c) => ({ c, s: contractStatus(c, T) }))
-    .filter((x) => x.s.urgency === 'urgent' || (x.s.urgency === 'soon' && (x.s.daysLeft ?? 99) <= 30))
+    .filter((x) => warnDeadline(x.s) != null && (x.s.urgency === 'urgent' || x.s.daysLeft! <= 30))
     .filter((x) => !prefs.dismissed.includes(`deadline:${x.c.id}:${x.s.cancelBy}`))
     .slice(0, 2);
   if (!urgent.length) return null;
@@ -177,7 +186,7 @@ function DeadlineBanners() {
         <div key={c.id} class={s.urgency === 'urgent' ? 'banner danger' : 'banner warn'}>
           <span class="b-emoji">{c.emoji ?? '📄'}</span>
           <button type="button" class="b-main" style={{ textAlign: 'left' }} onClick={() => navigate(`/wg/contracts/${c.id}`)}>
-            <div class="b-title">{t('contract.deadlineAlert', { name: c.name, n: s.daysLeft ?? 0 })}</div>
+            <div class="b-title">{deadlineAlert(c.name, s.daysLeft!)}</div>
             <div class="b-sub">
               {t('contract.cancelBy', { date: fmtDate(s.cancelBy!, 'dayMonthLong') })} · {t('contract.deadlineAlertSub')}
             </div>
@@ -211,7 +220,7 @@ export function Home() {
           <div class="caption" style={{ fontSize: '13.5px' }}>
             {fmtDate(today(), 'long')}
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {greeting()}, {firstName(self?.name ?? '')}{'\u00a0'}👋
           </div>
         </div>
@@ -241,7 +250,9 @@ export function Home() {
             navigate('/join', { replace: true });
           }}
         >
-          <span class="b-emoji">🔒</span>
+          <span class="b-emoji">
+            <Icon name="lock" size={20} />
+          </span>
           <div class="b-main">
             <div class="b-title">{t('error.sessionExpired')}</div>
           </div>
@@ -251,7 +262,9 @@ export function Home() {
 
       {s.mode === 'demo' ? (
         <div class="banner info mb-12">
-          <span class="b-emoji">🎭</span>
+          <span class="b-emoji">
+            <Icon name="info" size={20} />
+          </span>
           <div class="b-main">
             <div class="b-title">{t('home.demoTitle')}</div>
             <div class="b-sub">{t('home.demoSub')}</div>
@@ -262,7 +275,9 @@ export function Home() {
         </div>
       ) : alone && !setupBannerVisible() ? (
         <button type="button" class="banner info mb-12" onClick={() => openInvite()}>
-          <span class="b-emoji">💌</span>
+          <span class="b-emoji">
+            <Icon name="userPlus" size={20} />
+          </span>
           <div class="b-main">
             <div class="b-title">{t('home.inviteTitle')}</div>
             <div class="b-sub">{t('home.inviteSub')}</div>
@@ -275,19 +290,27 @@ export function Home() {
 
       <div class="quick mt-24">
         <button type="button" onClick={() => openExpenseEditor()}>
-          <span class="q-ico">💸</span>
+          <span class="q-ico">
+            <Icon name="receipt" size={23} />
+          </span>
           {t('home.quick.expense')}
         </button>
         <button type="button" onClick={() => openQuickAdd()}>
-          <span class="q-ico">🛒</span>
+          <span class="q-ico">
+            <Icon name="cart" size={23} />
+          </span>
           {t('home.quick.item')}
         </button>
         <button type="button" onClick={() => openChoreEditor()}>
-          <span class="q-ico">🧽</span>
+          <span class="q-ico">
+            <Icon name="sparkles" size={23} />
+          </span>
           {t('home.quick.chore')}
         </button>
         <button type="button" onClick={() => openEventEditor()}>
-          <span class="q-ico">📅</span>
+          <span class="q-ico">
+            <Icon name="calendar" size={23} />
+          </span>
           {t('home.quick.event')}
         </button>
       </div>
@@ -305,9 +328,11 @@ export function Home() {
           ))}
         </div>
       ) : (
-        <div class="card hstack" style={{ padding: '14px 16px' }}>
-          <span style={{ fontSize: '26px' }}>🌿</span>
-          <span class="muted" style={{ fontWeight: 600 }}>
+        <div class="card hstack" style={{ padding: '12px 16px' }}>
+          <span class="tile sm" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+            <Icon name="check" size={18} stroke={2.6} />
+          </span>
+          <span class="muted" style={{ fontWeight: 500 }}>
             {t('home.allDone')}
           </span>
         </div>
@@ -319,8 +344,10 @@ export function Home() {
       {pinned ? (
         <>
           <SectionTitle title={t('home.pinned')} action={t('home.seeAll')} onAction={() => navigate('/wg/board')} />
-          <button type="button" class="note" style={{ '--nc': pinned.color }} onClick={() => navigate('/wg/board')}>
-            <span class="pinned">📌</span>
+          <button type="button" class="note is-pinned" style={{ '--nc': pinned.color }} onClick={() => navigate('/wg/board')}>
+            <span class="pinned">
+              <Icon name="pin" size={16} />
+            </span>
             <div class="text">{pinned.text}</div>
             <div class="meta">
               <Avatar member={members().find((m) => m.id === pinned.authorId)} size={18} />

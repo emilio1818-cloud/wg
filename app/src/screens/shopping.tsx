@@ -134,7 +134,7 @@ export function Shopping(props: { listId?: ID }) {
                 onMouseDown={(e: MouseEvent) => e.preventDefault()}
                 onClick={() => {
                   addItems(current.id, s);
-                  toast(t('shop.added', { name: s }), { emoji: '🛒' });
+                  toast(t('shop.added', { name: s }));
                 }}
               >
                 + {s}
@@ -148,9 +148,7 @@ export function Shopping(props: { listId?: ID }) {
 
       {groups.map((g) => (
         <div key={g.cat}>
-          <div class="overline">
-            {ITEM_CATEGORY_EMOJI[g.cat]} {t(`icat.${g.cat}` as Key)}
-          </div>
+          <div class="overline">{t(`icat.${g.cat}` as Key)}</div>
           <div class="list">
             {g.items.map((i) => (
               <ItemRow key={i.id} item={i} color={current.color} />
@@ -161,10 +159,8 @@ export function Shopping(props: { listId?: ID }) {
 
       {cart.length ? (
         <>
-          <div class="overline" style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span>
-              🛍️ {t('shop.inCart')} ({cart.length})
-            </span>
+          <div class="overline">
+            {t('shop.inCart')} ({cart.length})
           </div>
           <div class="list" style={{ opacity: 0.75 }}>
             {cart.map((i) => (
@@ -190,7 +186,11 @@ function ItemRow(props: { item: ShoppingItem; color: string }) {
         <div class="title" style={{ textDecoration: i.checked ? 'line-through' : undefined, color: i.checked ? 'var(--text-3)' : undefined }}>
           {i.quantity ? <span class="faint num" style={{ fontWeight: 700 }}>{i.quantity} </span> : null}
           {i.name}
-          {i.urgent && !i.checked ? <span style={{ marginLeft: '6px' }}>❗</span> : null}
+          {i.urgent && !i.checked ? (
+            <span class="urgent" title={t('shop.urgent')} aria-label={t('shop.urgent')}>
+              <Icon name="alert" size={15} stroke={2.4} />
+            </span>
+          ) : null}
         </div>
         {i.note ? <div class="sub">{i.note}</div> : null}
       </button>
@@ -216,7 +216,8 @@ function QuickAddSheet(props: { preset: string }) {
     if (!draft.trim() || !listId) return;
     const added = addItems(listId, draft);
     closeTopSheet();
-    if (added.length) toast(added.length === 1 ? t('shop.added', { name: added[0]!.name }) : tp('activity.items_added', added.length, { name: t('common.you') }), { emoji: '🛒' });
+    // "Du hast 3 Artikel …" – the second-person text, not "{name} hat …" with name "Du".
+    if (added.length) toast(added.length === 1 ? t('shop.added', { name: added[0]!.name }) : tp('activity.items_added_me', added.length));
   };
   return (
     <Sheet
@@ -270,7 +271,7 @@ function ItemEditor(props: { id: ID }) {
   const del = async () => {
     await closeTopSheet();
     const undo = remove('items', item.id);
-    undoToast(t('common.deleted'), undo, '🗑️');
+    undoToast(t('common.deleted'), undo);
   };
   return (
     <Sheet
@@ -303,7 +304,7 @@ function ItemEditor(props: { id: ID }) {
         <input class="input" value={note} maxLength={200} onInput={(e: any) => setNote(e.target.value)} placeholder={t('shop.notePlaceholder')} />
       </Field>
       <div class="list mb-12">
-        <SwitchRow title={`❗ ${t('shop.urgent')}`} on={urgent} onChange={setUrgent} />
+        <SwitchRow title={t('shop.urgent')} on={urgent} onChange={setUrgent} />
       </div>
       <div class="overline">{t('common.category')}</div>
       <div class="chips">
@@ -345,7 +346,7 @@ function ListEditor(props: { id?: ID }) {
     await closeTopSheet();
     const undo = deleteList(existing.id);
     navigate('/shopping', { replace: true });
-    undoToast(t('common.deleted'), undo, '🗑️');
+    undoToast(t('common.deleted'), undo);
   };
   const clearChecked = () => {
     if (!existing) return;
@@ -353,7 +354,7 @@ function ListEditor(props: { id?: ID }) {
       .filter((i) => i.listId === existing.id && i.checked)
       .map((i) => remove('items', i.id));
     closeTopSheet();
-    if (undos.length) undoToast(t('common.deleted'), () => undos.forEach((u) => u()), '🧹');
+    if (undos.length) undoToast(t('common.deleted'), () => undos.forEach((u) => u()));
   };
   return (
     <Sheet
@@ -421,7 +422,7 @@ function FinishSheet(props: { listId: ID }) {
     finishShopping(props.listId, withExpense && amount > 0 ? { amount, paidBy } : null);
     closeTopSheet();
     confetti(innerWidth / 2, innerHeight * 0.5, 24);
-    toast(t('shop.finished'), { emoji: '🛍️' });
+    toast(t('shop.finished'));
   };
   return (
     <Sheet

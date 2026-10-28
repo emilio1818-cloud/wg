@@ -152,31 +152,36 @@ export function ToastHost(props: { withTabs: boolean }) {
 /* Confetti                                                            */
 /* ------------------------------------------------------------------ */
 
-const CONFETTI_COLORS = ['#7357ff', '#ff6a88', '#ffc93c', '#10b981', '#2f80ed', '#ec4899'];
+const CONFETTI_COLORS = ['#6b4ef6', '#a68bff', '#12a072', '#f2b322'];
 
-/** Fires a small confetti burst from a screen point (or the center). */
-export function confetti(x?: number, y?: number, count = 26): void {
+/**
+ * A small, quick burst of confetti from a screen point (or the center) as feedback for
+ * finishing something. Deliberately modest: about half the pieces it is asked for, a short
+ * reach and under a second on screen.
+ */
+export function confetti(x?: number, y?: number, count = 24): void {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const layer = document.createElement('div');
   layer.className = 'confetti';
   const cx0 = x ?? innerWidth / 2;
   const cy0 = y ?? innerHeight / 2;
-  for (let i = 0; i < count; i++) {
+  const n = Math.min(16, Math.ceil(count / 2));
+  for (let i = 0; i < n; i++) {
     const p = document.createElement('i');
     const angle = Math.random() * Math.PI * 2;
-    const dist = 60 + Math.random() * 140;
+    const dist = 40 + Math.random() * 70;
     p.style.left = cx0 + 'px';
     p.style.top = cy0 + 'px';
     p.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length]!;
     p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
-    p.style.setProperty('--dy', Math.sin(angle) * dist + 120 + Math.random() * 80 + 'px');
-    p.style.setProperty('--rot', Math.random() * 720 - 360 + 'deg');
-    p.style.animationDelay = Math.random() * 80 + 'ms';
+    p.style.setProperty('--dy', Math.sin(angle) * dist + 50 + Math.random() * 40 + 'px');
+    p.style.setProperty('--rot', Math.random() * 360 - 180 + 'deg');
+    p.style.animationDelay = Math.random() * 60 + 'ms';
     if (i % 3 === 0) p.style.borderRadius = '50%';
     layer.appendChild(p);
   }
   document.body.appendChild(layer);
-  setTimeout(() => layer.remove(), 1600);
+  setTimeout(() => layer.remove(), 1100);
 }
 
 /* ------------------------------------------------------------------ */
@@ -201,7 +206,7 @@ export async function copyText(text: string, message?: string): Promise<void> {
     ta.remove();
   }
   haptic(10);
-  toast(message ?? t('common.copied'), { emoji: '📋' });
+  toast(message ?? t('common.copied'));
 }
 
 /** Native share sheet when available, clipboard otherwise. */

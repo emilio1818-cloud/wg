@@ -20,8 +20,8 @@ export function openInstall(): void {
       <div class="list">
         {[t('install.iosStep1'), t('install.iosStep2'), t('install.iosStep3')].map((step, i) => (
           <div key={i} class="row">
-            <span class="tile" style={{ background: 'var(--primary-soft)', color: 'var(--primary)', fontWeight: 800, fontSize: '17px' }}>
-              {i === 0 ? <Icon name="share" size={20} /> : i === 1 ? <Icon name="plus" size={20} /> : '✓'}
+            <span class="tile" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
+              <Icon name={i === 0 ? 'share' : i === 1 ? 'plus' : 'check'} size={20} />
             </span>
             <div class="main">
               <div class="title" style={{ whiteSpace: 'normal' }}>{step}</div>
@@ -71,8 +71,8 @@ export function NotifyBanner() {
         variant="primary"
         onClick={async () => {
           const r = await enableNotifications();
-          if (r === 'denied') toast(t('settings.notifDenied'), { emoji: '🔕' });
-          else if (r !== 'unsupported') toast(t('settings.notifOn'), { emoji: '🔔' });
+          if (r === 'denied') toast(t('settings.notifDenied'));
+          else if (r !== 'unsupported') toast(t('settings.notifOn'));
         }}
       >
         {t('notify.bannerCta')}

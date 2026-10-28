@@ -1,7 +1,7 @@
 import { h, Fragment, useState } from '../lib/ui.ts';
 import { closeTopSheet, goBack, navigate, openSheet } from '../lib/router.ts';
 import { addDays, today } from '../../../core/src/dates.ts';
-import { cancellationLetter, CONTRACT_TEMPLATES, contractStatus } from '../../../core/src/contracts.ts';
+import { cancellableAnyTime, cancellationLetter, CONTRACT_TEMPLATES, contractStatus, deadlineDaysLeft } from '../../../core/src/contracts.ts';
 import type { ContractStatus } from '../../../core/src/contracts.ts';
 import { centsToInput, parseAmount } from '../../../core/src/money.ts';
 import type { Contract, ContractCategory, ID } from '../../../core/src/types.ts';
@@ -19,7 +19,7 @@ void Fragment;
 function statusText(s: ContractStatus): string {
   switch (s.phase) {
     case 'minTerm':
-      return s.daysLeft === 0 ? t('contract.phase.openEnded') : t('contract.phase.minTerm', { date: fmtDate(s.termEnd!, 'medium') });
+      return cancellableAnyTime(s) ? t('contract.phase.openEnded') : t('contract.phase.minTerm', { date: fmtDate(s.termEnd!, 'medium') });
     case 'renewing':
       return t('contract.phase.renewing', { date: fmtDate(addDays(s.termEnd!, 1), 'medium') });
     case 'openEnded':
@@ -33,13 +33,25 @@ function statusText(s: ContractStatus): string {
   }
 }
 
+/** A deadline worth a warning: close (soon/urgent) and still ahead or today. */
+export function warnDeadline(s: ContractStatus): number | null {
+  const days = deadlineDaysLeft(s);
+  return days != null && (s.urgency === 'urgent' || s.urgency === 'soon') ? days : null;
+}
+
+/** "Kündigungsfrist: noch 3 Tage" / "heute letzter Tag" headline for banners. */
+export function deadlineAlert(name: string, days: number): string {
+  return days === 0 ? t('contract.deadlineToday', { name }) : tp('contract.deadlineAlert', days, { name });
+}
+
 function StatusBadge(props: { s: ContractStatus }) {
   const s = props.s;
-  if (s.cancelBy && s.daysLeft && s.daysLeft > 0 && (s.urgency === 'urgent' || s.urgency === 'soon')) {
-    return <span class={cx('badge', s.urgency === 'urgent' ? 'red' : 'amber')}>⏳ {tp('contract.daysLeft', s.daysLeft)}</span>;
+  const days = warnDeadline(s);
+  if (days != null) {
+    return <span class={cx('badge', s.urgency === 'urgent' ? 'red' : 'amber')}>{days === 0 ? t('contract.lastDay') : tp('contract.daysLeft', days)}</span>;
   }
-  if (s.phase === 'cancelled') return <span class="badge">✓ {t('contract.phase.cancelledNoDate')}</span>;
-  if (s.phase === 'openEnded' || (s.phase === 'minTerm' && s.daysLeft === 0)) return <span class="badge green">{t('contract.phase.openEnded')}</span>;
+  if (s.phase === 'cancelled') return <span class="badge">{t('contract.phase.cancelledNoDate')}</span>;
+  if (cancellableAnyTime(s)) return <span class="badge green">{t('contract.phase.openEnded')}</span>;
   return null;
 }
 
@@ -49,7 +61,7 @@ export function Contracts() {
   const active = items.filter((x) => x.s.phase !== 'ended' && x.s.phase !== 'cancelled');
   const monthly = active.reduce((a, x) => a + (x.c.monthlyCost ?? 0), 0);
   const n = Math.max(1, members().length);
-  const deadlines = active.filter((x) => x.s.cancelBy && (x.s.daysLeft ?? 0) > 0 && (x.s.urgency === 'urgent' || x.s.urgency === 'soon')).sort((a, b) => a.s.daysLeft! - b.s.daysLeft!);
+  const deadlines = active.filter((x) => warnDeadline(x.s) != null).sort((a, b) => a.s.daysLeft! - b.s.daysLeft!);
   const sorted = [...items].sort((a, b) => {
     const rank = (x: typeof a) => (x.s.phase === 'ended' ? 3 : x.s.phase === 'cancelled' ? 2 : x.s.urgency === 'urgent' ? 0 : x.s.urgency === 'soon' ? 0.5 : 1);
     return rank(a) - rank(b) || (b.c.monthlyCost ?? 0) - (a.c.monthlyCost ?? 0);
@@ -61,7 +73,7 @@ export function Contracts() {
         <Empty art="📄" title={t('contract.emptyTitle')} sub={t('contract.emptySub')} action={<Button variant="primary" icon="plus" onClick={() => openContractEditor()}>{t('contract.new')}</Button>} />
       ) : (
         <>
-          <div class="hero mt-8" style={{ background: 'linear-gradient(135deg, #6d5dfc 0%, #8b5cf6 60%, #c084fc 100%)' }}>
+          <div class="hero mt-8">
             <div class="label">{t('contract.monthly')}</div>
             <div class="big num">{money(monthly)}</div>
             <div class="sub">
@@ -74,7 +86,7 @@ export function Contracts() {
                 <button key={c.id} type="button" class={s.urgency === 'urgent' ? 'banner danger' : 'banner warn'} onClick={() => navigate(`/wg/contracts/${c.id}`)}>
                   <span class="b-emoji">{c.emoji ?? '📄'}</span>
                   <div class="b-main">
-                    <div class="b-title">{t('contract.deadlineAlert', { name: c.name, n: s.daysLeft! })}</div>
+                    <div class="b-title">{deadlineAlert(c.name, s.daysLeft!)}</div>
                     <div class="b-sub">{t('contract.cancelBy', { date: fmtDate(s.cancelBy!, 'medium') })}</div>
                   </div>
                   <Icon name="chevronRight" size={18} class="faint" />
@@ -92,7 +104,13 @@ export function Contracts() {
                 onClick={() => navigate(`/wg/contracts/${c.id}`)}
                 lead={<Tile emoji={c.emoji ?? '📄'} />}
                 title={c.name}
-                sub={`${c.provider || t(`ccat.${c.category}` as Key)} · ${statusText(s)}`}
+                class="multiline"
+                sub={
+                  <>
+                    <span class="line">{c.provider || t(`ccat.${c.category}` as Key)}</span>
+                    {statusText(s)}
+                  </>
+                }
                 end={
                   <>
                     {c.monthlyCost ? <div class="amount num">{money(c.monthlyCost)}</div> : null}
@@ -105,7 +123,7 @@ export function Contracts() {
           </div>
         </>
       )}
-      <button type="button" class="fab" style={{ '--fab-bg': 'var(--violet)' }} onClick={() => openContractEditor()}>
+      <button type="button" class="fab" onClick={() => openContractEditor()}>
         <Icon name="plus" size={22} stroke={2.6} /> {t('contract.add')}
       </button>
     </div>
@@ -140,9 +158,14 @@ export function ContractDetail(props: { id: ID }) {
     const ok = await confirmDialog({ title: t('common.confirmDelete'), message: c.name, confirm: t('common.delete'), destructive: true, emoji: c.emoji });
     if (!ok) return;
     const undo = remove('contracts', c.id);
-    if (c.recurringId) update('recurring', c.recurringId, { active: false });
+    // The linked fixed cost stops with the contract – and comes back with an undo.
+    const linked = c.recurringId ? get('recurring', c.recurringId) : undefined;
+    if (linked?.active) update('recurring', linked.id, { active: false });
     goBack('/wg/contracts');
-    undoToast(t('contract.deleted'), undo, '🗑️');
+    undoToast(t('contract.deleted'), () => {
+      undo();
+      if (linked?.active) update('recurring', linked.id, { active: true });
+    });
   };
   const toggleCancelled = () => {
     if (c.cancelled) {
@@ -153,7 +176,7 @@ export function ContractDetail(props: { id: ID }) {
     const end = s.termEnd ?? T;
     update('contracts', c.id, { cancelled: true, endDate: end });
     if (c.recurringId) update('recurring', c.recurringId, { endDate: end });
-    toast(t('contract.cancelledToast'), { emoji: '✅' });
+    toast(t('contract.cancelledToast'));
   };
   const notice = c.noticeValue != null ? `${c.noticeValue} ${tp(`unit.${c.noticeUnit ?? 'month'}` as 'unit.month', c.noticeValue)}` : '–';
   return (
@@ -169,12 +192,12 @@ export function ContractDetail(props: { id: ID }) {
       />
       <div class="center fade-in" style={{ padding: '6px 0 18px' }}>
         <Tile emoji={c.emoji ?? '📄'} size="xl" color="var(--violet)" />
-        <h1 style={{ margin: '12px 0 2px', fontSize: '26px', letterSpacing: '-0.03em' }}>{c.name}</h1>
+        <h1 style={{ margin: '12px 0 2px', fontSize: '24px', fontWeight: 700, letterSpacing: '-0.02em' }}>{c.name}</h1>
         <div class="muted">{c.provider}</div>
         {c.monthlyCost ? (
-          <div style={{ fontSize: '30px', fontWeight: 820, marginTop: '10px', letterSpacing: '-0.03em' }} class="num">
+          <div style={{ fontSize: '28px', fontWeight: 700, marginTop: '10px', letterSpacing: '-0.02em' }} class="num">
             {money(c.monthlyCost)}
-            <span class="faint" style={{ fontSize: '16px', fontWeight: 650 }}>
+            <span class="faint" style={{ fontSize: '16px', fontWeight: 500 }}>
               {' '}
               {t('common.perMonth')}
             </span>
@@ -184,7 +207,7 @@ export function ContractDetail(props: { id: ID }) {
 
       <div class={cx('card', s.urgency === 'urgent' && 'pad-lg')} style={s.urgency === 'urgent' ? { boxShadow: '0 0 0 2px var(--red)' } : undefined}>
         <div class="hstack" style={{ justifyContent: 'space-between' }}>
-          <div style={{ fontWeight: 750 }}>{t('contract.term')}</div>
+          <div style={{ fontWeight: 650 }}>{t('contract.term')}</div>
           <StatusBadge s={s} />
         </div>
         <div class="muted mt-8" style={{ fontSize: '15px' }}>
@@ -204,10 +227,12 @@ export function ContractDetail(props: { id: ID }) {
         ) : null}
         {s.cancelBy && s.phase !== 'cancelled' && s.phase !== 'ended' ? (
           <div class={cx('banner mt-12', s.urgency === 'urgent' ? 'danger' : s.urgency === 'soon' ? 'warn' : 'info')}>
-            <span class="b-emoji">⏳</span>
+            <span class="b-emoji">
+              <Icon name="clock" size={20} />
+            </span>
             <div class="b-main">
-              <div class="b-title">{s.daysLeft === 0 ? t('contract.phase.openEnded') : t('contract.cancelBy', { date: fmtDate(s.cancelBy, 'long') })}</div>
-              <div class="b-sub">{s.daysLeft === 0 ? t('contract.earliestEnd', { date: fmtDate(s.termEnd!, 'medium') }) : t('contract.endsThen', { date: fmtDate(s.termEnd!, 'medium') })}</div>
+              <div class="b-title">{cancellableAnyTime(s) ? t('contract.phase.openEnded') : t('contract.cancelBy', { date: fmtDate(s.cancelBy, 'long') })}</div>
+              <div class="b-sub">{cancellableAnyTime(s) ? t('contract.earliestEnd', { date: fmtDate(s.termEnd!, 'medium') }) : t('contract.endsThen', { date: fmtDate(s.termEnd!, 'medium') })}</div>
             </div>
           </div>
         ) : null}
@@ -216,7 +241,7 @@ export function ContractDetail(props: { id: ID }) {
       <div class="section-title">{t('contract.cancelSection')}</div>
       <div class="stack">
         {s.phase !== 'cancelled' && s.phase !== 'ended' ? (
-          <Button variant="primary" block icon="send" onClick={() => openLetter(c.id)} style={{ background: 'var(--violet)', boxShadow: 'none' }}>
+          <Button variant="primary" block icon="send" onClick={() => openLetter(c.id)}>
             {t('contract.writeLetter')}
           </Button>
         ) : null}
@@ -234,7 +259,9 @@ export function ContractDetail(props: { id: ID }) {
         <Row compact title={c.minTermMonths ? `${c.minTermMonths} ${tp('unit.month', c.minTermMonths)}` : t('contract.noTerm')} sub={t('contract.minTerm')} />
         <Row compact title={notice} sub={t('contract.notice')} />
         {holder ? <Row compact lead={<Avatar member={holder} size={30} />} title={displayName(holder.id)} sub={t('contract.holder')} /> : null}
-        {c.recurringId && get('recurring', c.recurringId)?.active ? <Row compact title={`🔁 ${t('contract.linked')}`} onClick={() => navigate('/money?tab=recurring')} chevron /> : null}
+        {c.recurringId && get('recurring', c.recurringId)?.active ? (
+          <Row compact lead={<Tile icon="repeat" size="sm" color="var(--green)" />} title={t('contract.linked')} onClick={() => navigate('/money?tab=recurring')} chevron />
+        ) : null}
       </div>
 
       {c.phone || c.email || c.website ? (
@@ -474,7 +501,7 @@ function ContractEditor(props: { id?: ID }) {
             <option value="0">{t('contract.renewalOpen')}</option>
             {[1, 3, 6, 12, 24].map((n) => (
               <option key={n} value={String(n)}>
-                {t('contract.renewalN', { n })}
+                {tp('contract.renewalN', n)}
               </option>
             ))}
           </select>

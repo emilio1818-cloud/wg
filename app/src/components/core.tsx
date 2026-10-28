@@ -287,7 +287,7 @@ export function EmojiGrid(props: { options: string[]; value?: string; onChange: 
     <div class="emoji-grid">
       {props.options.map((e) => (
         <button key={e || 'none'} type="button" class={e === props.value ? 'active' : ''} onClick={() => props.onChange(e)}>
-          {e || <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-2)' }}>Aa</span>}
+          {e || <span style={{ fontSize: '16px', fontWeight: 650, color: 'var(--text-2)' }}>Aa</span>}
         </button>
       ))}
     </div>

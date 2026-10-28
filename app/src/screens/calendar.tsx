@@ -1,8 +1,8 @@
 import { h, Fragment, useState } from '../lib/ui.ts';
 import { closeTopSheet, openSheet } from '../lib/router.ts';
-import { addDays, addFrequency, addMonths, monthGrid, nextAnnual, startOfMonth, today } from '../../../core/src/dates.ts';
+import { addDays, addFrequency, addMonths, diffDays, monthGrid, nextAnnual, startOfMonth, today } from '../../../core/src/dates.ts';
 import { occurrencesBetween } from '../../../core/src/recurring.ts';
-import { contractStatus } from '../../../core/src/contracts.ts';
+import { contractStatus, deadlineDaysLeft } from '../../../core/src/contracts.ts';
 import { EVENT_TYPES } from '../../../core/src/categories.ts';
 import type { CalendarEvent, EventType, ID, ISODate } from '../../../core/src/types.ts';
 import { t } from '../i18n/index.ts';
@@ -89,7 +89,8 @@ function collectEntries(from: ISODate, to: ISODate, layers: Set<Layer>): Entry[]
   if (layers.has('deadlines')) {
     for (const c of list('contracts')) {
       const s = contractStatus(c, today());
-      if (s.cancelBy && s.daysLeft && s.daysLeft > 0 && s.cancelBy >= from && s.cancelBy <= to) {
+      // Includes a deadline that ends today – that is the most important one to see.
+      if (s.cancelBy && deadlineDaysLeft(s) != null && s.cancelBy >= from && s.cancelBy <= to) {
         out.push({ key: `d${c.id}`, date: s.cancelBy, title: t('cal.deadline', { name: c.name }), emoji: '⏳', color: LAYER_COLORS.deadlines, layer: 'deadlines', sub: c.provider });
       }
     }
@@ -106,6 +107,16 @@ function collectEntries(from: ISODate, to: ISODate, layers: Set<Layer>): Entry[]
 
 function onDay(e: Entry, d: ISODate): boolean {
   return d >= e.date && d <= (e.endDate ?? e.date);
+}
+
+/** "Heute · 28. Oktober", "In 3 Tagen · 31. Oktober" or – further away – just "Montag, 9. November". */
+function dayHeading(d: ISODate, T: ISODate): string {
+  if (d === T) return `${t('common.today')} · ${fmtDate(d, 'dayMonthLong')}`;
+  if (Math.abs(diffDays(T, d)) < 7) {
+    const rel = relDay(d, T);
+    return `${rel.charAt(0).toUpperCase()}${rel.slice(1)} · ${fmtDate(d, 'dayMonthLong')}`;
+  }
+  return fmtDate(d, 'long');
 }
 
 export function CalendarScreen() {
@@ -145,7 +156,7 @@ export function CalendarScreen() {
       })),
     );
     downloadFile(`${(household()?.name ?? 'nestly').replace(/[^\p{L}\d]+/gu, '-')}.ics`, ics, 'text/calendar;charset=utf-8');
-    toast(t('cal.exported'), { emoji: '📅' });
+    toast(t('cal.exported'));
   };
 
   return (
@@ -153,14 +164,14 @@ export function CalendarScreen() {
       <TopBar title={t('cal.title')} fallback="/wg" right={<IconButton icon="download" label={t('cal.export')} onClick={exportIcs} />} />
       <div class="card mt-8">
         <div class="hstack mb-12">
-          <IconButton icon="chevronLeft" label="prev" variant="soft" onClick={() => setMonth(addMonths(month, -1))} />
-          <button type="button" class="grow center" style={{ fontWeight: 780, fontSize: '17px' }} onClick={() => {
+          <IconButton icon="chevronLeft" label={t('common.prevMonth')} variant="soft" onClick={() => setMonth(addMonths(month, -1))} />
+          <button type="button" class="grow center" style={{ fontWeight: 650, fontSize: '17px' }} onClick={() => {
             setMonth(startOfMonth(T));
             setSelected(T);
           }}>
             {fmtDate(month, 'monthYear')}
           </button>
-          <IconButton icon="chevronRight" label="next" variant="soft" onClick={() => setMonth(addMonths(month, 1))} />
+          <IconButton icon="chevronRight" label={t('common.nextMonth')} variant="soft" onClick={() => setMonth(addMonths(month, 1))} />
         </div>
         <div class="cal-grid">
           {dows.map((d) => (
@@ -195,13 +206,14 @@ export function CalendarScreen() {
 
       <div class="chips scroll mt-12">
         {(Object.keys(LAYER_COLORS) as Layer[]).map((l) => (
-          <button key={l} type="button" class={cx('chip', layers.has(l) ? '' : 'outline')} style={layers.has(l) ? { background: LAYER_COLORS[l], color: '#fff' } : undefined} onClick={() => toggle(l)}>
+          <button key={l} type="button" class={cx('chip layer-chip', !layers.has(l) && 'off')} style={{ '--lc': LAYER_COLORS[l] }} aria-pressed={layers.has(l)} onClick={() => toggle(l)}>
+            <span class="sw" />
             {t(`cal.layer.${l}` as Key)}
           </button>
         ))}
       </div>
 
-      <div class="section-title">{selected === T ? t('common.today') : relDay(selected)} · {fmtDate(selected, 'dayMonthLong')}</div>
+      <div class="section-title">{dayHeading(selected, T)}</div>
       {dayEntries.length ? (
         <div class="list">
           {dayEntries.map((e) => (
@@ -232,7 +244,7 @@ export function CalendarScreen() {
         </>
       ) : null}
 
-      <button type="button" class="fab" style={{ '--fab-bg': 'var(--pink)' }} onClick={() => openEventEditor(selected)}>
+      <button type="button" class="fab" onClick={() => openEventEditor(selected)}>
         <Icon name="plus" size={22} stroke={2.6} /> {t('cal.add')}
       </button>
     </div>
@@ -290,7 +302,7 @@ function EventEditor(props: { date?: ISODate; id?: ID }) {
     if (!existing) return;
     await closeTopSheet();
     const undo = remove('events', existing.id);
-    undoToast(t('cal.deleted'), undo, '🗑️');
+    undoToast(t('cal.deleted'), undo);
   };
 
   return (
@@ -351,7 +363,7 @@ function EventEditor(props: { date?: ISODate; id?: ID }) {
       ) : null}
       <div class="overline">{isAway ? t('cal.awayWho') : t('cal.participants')}</div>
       <MemberPicker members={ms} value={who} multiple onChange={setWho} meId={myId()} />
-      {isAway ? <p class="hint">🧳 {t('cal.awayHint')}</p> : null}
+      {isAway ? <p class="hint">{t('cal.awayHint')}</p> : null}
       <Field label={t('common.note')} class="mt-16">
         <textarea class="textarea" style={{ minHeight: '76px' }} value={note} maxLength={500} onInput={(e: any) => setNote(e.target.value)} />
       </Field>

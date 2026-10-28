@@ -193,7 +193,7 @@ describe('Nestly end-to-end', () => {
     const pb = state.b.page;
     await pb.getByRole('button', { name: 'Begleichen' }).first().click();
     await pb.getByRole('button', { name: 'Als bezahlt markieren' }).click();
-    await pb.getByText('Ausgeglichen! 🙌').waitFor();
+    await pb.locator('.toast', { hasText: 'Ausgeglichen' }).waitFor();
     const pa = state.a.page;
     await pa.evaluate(() => (location.hash = '#/money'));
     // Ben (placeholder) still owes Emil 20 €; Sophie's debt is gone.
@@ -333,6 +333,32 @@ describe('Nestly end-to-end', () => {
     assert.match(download.suggestedFilename(), /\.ics$/);
     const ics = fs.readFileSync(await download.path(), 'utf8');
     assert.match(ics, /BEGIN:VCALENDAR[\s\S]*BEGIN:VEVENT[\s\S]*END:VCALENDAR/);
+    assert.deepEqual(d.errors, []);
+    await d.ctx.close();
+  });
+
+  it('brings the linked fixed cost back when deleting a contract is undone', async () => {
+    const d = await device();
+    const { page } = d;
+    await page.goto(base + '?nosw');
+    await page.getByRole('button', { name: 'Erstmal umschauen' }).click();
+    await page.getByText('Alex 👋').waitFor();
+    const stromCost = () => page.locator('.list .row', { hasText: 'Strom' }).first();
+
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).click();
+    await page.getByRole('button', { name: 'Löschen' }).click();
+    await page.locator('.dialog .btn.danger').click();
+    await page.locator('.toast', { hasText: 'Vertrag gelöscht' }).waitFor();
+
+    // Deleting the contract pauses its fixed cost …
+    await page.evaluate(() => (location.hash = '#/money?tab=recurring'));
+    await stromCost().getByText('Pausiert').waitFor();
+    // … and undoing brings both back.
+    await page.locator('.toast').getByRole('button', { name: 'Rückgängig' }).click();
+    await stromCost().getByText('Nächste Buchung', { exact: false }).waitFor();
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).waitFor();
     assert.deepEqual(d.errors, []);
     await d.ctx.close();
   });

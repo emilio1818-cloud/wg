@@ -2,7 +2,7 @@ import { h, Fragment, useState } from '../lib/ui.ts';
 import { closeTopSheet, goBack, navigate, openSheet } from '../lib/router.ts';
 import { AVATAR_EMOJIS, MEMBER_COLORS } from '../../../core/src/categories.ts';
 import { formatIban, isValidIban, paypalLink } from '../../../core/src/balances.ts';
-import { today } from '../../../core/src/dates.ts';
+import { toISODate, today } from '../../../core/src/dates.ts';
 import type { ID } from '../../../core/src/types.ts';
 import { t } from '../i18n/index.ts';
 import { fmtDate, money } from '../i18n/format.ts';
@@ -50,8 +50,8 @@ export function Members() {
                   {m.id === myId() ? <span class="faint"> · {t('common.you')}</span> : null}
                 </>
               }
-              sub={!m.claimed ? `⏳ ${t('members.notJoined')}` : away ? `🧳 ${m.awayUntil ? t('members.awayUntil', { date: fmtDate(m.awayUntil, 'dayMonth') }) : t('members.away')}` : t('members.joinedOn', { date: fmtDate(new Date(m.createdAt).toISOString().slice(0, 10), 'medium') })}
-              end={b !== 0 ? <span class={cx('num', b > 0 ? 'pos' : 'neg')} style={{ fontWeight: 750 }}>{money(b, { sign: true })}</span> : null}
+              sub={!m.claimed ? t('members.notJoined') : away ? (m.awayUntil ? t('members.awayUntil', { date: fmtDate(m.awayUntil, 'dayMonth') }) : t('members.away')) : t('members.joinedOn', { date: fmtDate(toISODate(new Date(m.createdAt)), 'monthYearShort') })}
+              end={b !== 0 ? <span class={cx('num', b > 0 ? 'pos' : 'neg')} style={{ fontWeight: 650 }}>{money(b, { sign: true })}</span> : null}
               chevron
             />
           );
@@ -63,7 +63,7 @@ export function Members() {
           <div class="overline">{t('members.former')}</div>
           <div class="list">
             {former.map((m) => (
-              <Row key={m.id} onClick={() => navigate(`/wg/members/${m.id}`)} lead={<Avatar member={m} size={40} />} title={m.name} sub={`📦 ${t('members.left')}`} chevron />
+              <Row key={m.id} onClick={() => navigate(`/wg/members/${m.id}`)} lead={<Avatar member={m} size={40} />} title={m.name} sub={t('members.left')} chevron />
             ))}
           </div>
         </>
@@ -78,11 +78,11 @@ function AddMemberCard() {
     if (!name.trim()) return;
     const m = addMember(name);
     setName('');
-    toast(t('members.added', { name: m.name }), { emoji: '🙋' });
+    toast(t('members.added', { name: m.name }));
   };
   return (
     <div class="card mt-16">
-      <div style={{ fontWeight: 750 }}>{t('members.add')}</div>
+      <div style={{ fontWeight: 650 }}>{t('members.add')}</div>
       <div class="caption" style={{ margin: '2px 0 12px' }}>
         {t('members.addSub')}
       </div>
@@ -115,23 +115,23 @@ export function MemberDetail(props: { id: ID }) {
   const session = store.session;
   const canRelease = !isMe && m.claimed && !m.leftAt && session?.mode === 'cloud';
   const release = async () => {
-    const ok = await confirmDialog({ title: t('members.releaseTitle', { name: firstName(m.name) }), message: t('members.releaseSub', { name: firstName(m.name) }), confirm: t('members.release'), destructive: true, emoji: '📱' });
+    const ok = await confirmDialog({ title: t('members.releaseTitle', { name: firstName(m.name) }), message: t('members.releaseSub', { name: firstName(m.name) }), confirm: t('members.release'), destructive: true });
     if (!ok || !session?.serverUrl || !session.token) return;
     try {
       await api.releaseMember(session.serverUrl, session.householdId, session.token, m.id);
       update('members', m.id, { claimed: false });
-      toast(t('members.released', { name: firstName(m.name) }), { emoji: '📱' });
+      toast(t('members.released', { name: firstName(m.name) }));
     } catch {
-      toast(t('error.network'), { emoji: '⚠️' });
+      toast(t('error.network'));
     }
   };
 
   const doMoveOut = async () => {
     if (b !== 0) {
-      await confirmDialog({ title: t('members.moveOutTitle', { name: firstName(m.name) }), message: t('members.moveOutBlocked', { amount: money(Math.abs(b)) }), confirm: t('common.ok'), emoji: '💸' });
+      await confirmDialog({ title: t('members.moveOutTitle', { name: firstName(m.name) }), message: t('members.moveOutBlocked', { amount: money(Math.abs(b)) }), confirm: t('common.ok') });
       return;
     }
-    const ok = await confirmDialog({ title: t('members.moveOutTitle', { name: firstName(m.name) }), message: t('members.moveOutSub', { name: firstName(m.name) }), confirm: t('members.moveOut'), destructive: true, emoji: '📦' });
+    const ok = await confirmDialog({ title: t('members.moveOutTitle', { name: firstName(m.name) }), message: t('members.moveOutSub', { name: firstName(m.name) }), confirm: t('members.moveOut'), destructive: true });
     if (!ok) return;
     moveOut(m.id);
     goBack('/wg/members');
@@ -142,9 +142,9 @@ export function MemberDetail(props: { id: ID }) {
       <TopBar title={isMe ? t('profile.title') : firstName(m.name)} fallback="/wg/members" right={editable ? <IconButton icon="pencil" label={t('members.edit')} onClick={() => openProfileEditor(m.id)} /> : null} />
       <div class="center fade-in" style={{ padding: '10px 0 18px' }}>
         <Avatar member={m} size={104} away={away} />
-        <h1 style={{ margin: '14px 0 2px', fontSize: '28px', letterSpacing: '-0.03em' }}>{m.name}</h1>
+        <h1 style={{ margin: '14px 0 2px', fontSize: '26px', fontWeight: 700, letterSpacing: '-0.02em' }}>{m.name}</h1>
         <div class="muted">
-          {m.leftAt ? `📦 ${t('members.left')}` : !m.claimed ? `⏳ ${t('members.notJoined')}` : away ? `🧳 ${t('members.away')}` : t('members.joinedOn', { date: fmtDate(new Date(m.createdAt).toISOString().slice(0, 10), 'medium') })}
+          {m.leftAt ? t('members.left') : !m.claimed ? t('members.notJoined') : away ? t('members.away') : t('members.joinedOn', { date: fmtDate(toISODate(new Date(m.createdAt)), 'medium') })}
         </div>
         <div class={cx('badge mt-12 num', b > 0 ? 'green' : b < 0 ? 'red' : '')} style={{ height: '28px', fontSize: '14px', padding: '0 12px' }}>
           {t('members.balance')}: {money(b, { sign: true })}
@@ -170,8 +170,8 @@ export function MemberDetail(props: { id: ID }) {
       <div class="list mt-16">
         {m.paypal ? <Row compact title={`paypal.me/${m.paypal}`} sub="PayPal" end={<IconButton icon="copy" label={t('common.copy')} variant="plain" size={18} onClick={() => copyText(`https://paypal.me/${m.paypal}`)} />} /> : null}
         {m.iban ? <Row compact title={<span class="num">{formatIban(m.iban)}</span>} sub={t('profile.iban')} end={<IconButton icon="copy" label={t('common.copy')} variant="plain" size={18} onClick={() => copyText(m.iban!.replace(/\s/g, ''))} />} /> : null}
-        {m.birthday ? <Row compact title={`🎂 ${fmtDate(`2000-${m.birthday}`, 'dayMonthLong')}`} sub={t('profile.birthday')} /> : null}
-        {m.awayFrom ? <Row compact title={`🧳 ${fmtDate(m.awayFrom, 'dayMonth')}${m.awayUntil ? ' – ' + fmtDate(m.awayUntil, 'dayMonth') : ''}`} sub={t('profile.away')} /> : null}
+        {m.birthday ? <Row compact title={fmtDate(`2000-${m.birthday}`, 'dayMonthLong')} sub={t('profile.birthday')} /> : null}
+        {m.awayFrom ? <Row compact title={`${fmtDate(m.awayFrom, 'dayMonth')}${m.awayUntil ? ' – ' + fmtDate(m.awayUntil, 'dayMonth') : ''}`} sub={t('profile.away')} /> : null}
       </div>
 
       {isMe ? (
@@ -228,7 +228,7 @@ function ProfileEditor(props: { id: ID }) {
       awayUntil: awayOn && awayUntil ? awayUntil : undefined,
     });
     closeTopSheet();
-    toast(t('profile.saved'), { emoji: emoji || '✨' });
+    toast(t('profile.saved'), { emoji: emoji || undefined });
   };
   return (
     <Sheet
@@ -250,7 +250,7 @@ function ProfileEditor(props: { id: ID }) {
       <div class="mt-16">
         <ColorRow options={MEMBER_COLORS} value={color} onChange={setColor} />
       </div>
-      <div class="overline">💸 {t('settle.title')}</div>
+      <div class="overline">{t('settle.title')}</div>
       <Field label={t('profile.paypal')} hint={t('profile.paypalHint')}>
         <div class="input-group">
           <span class="faint" style={{ position: 'absolute', left: '16px', fontWeight: 600 }}>
@@ -266,7 +266,7 @@ function ProfileEditor(props: { id: ID }) {
         <input class="input" type="date" value={birthday} onInput={(e: any) => setBirthday(e.target.value)} />
       </Field>
       <div class="list">
-        <SwitchRow lead={<span style={{ fontSize: '22px' }}>🧳</span>} title={t('profile.away')} sub={t('profile.awayHint')} on={awayOn} onChange={setAwayOn} />
+        <SwitchRow title={t('profile.away')} sub={t('profile.awayHint')} on={awayOn} onChange={setAwayOn} />
       </div>
       {awayOn ? (
         <div class="form-row mt-12 fade-in">

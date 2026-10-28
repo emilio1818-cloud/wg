@@ -5,7 +5,7 @@ import { CHORE_TEMPLATES, choreState, eligibleMembers, leaderboard, nextAssignee
 import type { Chore, Frequency, ID, RotationMode } from '../../../core/src/types.ts';
 import { t, tp } from '../i18n/index.ts';
 import type { Key } from '../i18n/index.ts';
-import { fmtDate, freqLabel, timeAgo } from '../i18n/format.ts';
+import { fmtDate, freqLabel, percent, timeAgo } from '../i18n/format.ts';
 import { get, list, remove, update } from '../state/store.ts';
 import { displayName, member, members, memberIsAway, myId } from '../state/selectors.ts';
 import { finishChore, saveChore } from '../state/actions.ts';
@@ -17,10 +17,14 @@ void Fragment;
 /** Chores due today or earlier that are mine or open to anyone. */
 export function choresDueForMe(): Chore[] {
   const T = today();
-  const me = myId();
   return list('chores')
-    .filter((c) => !c.paused && c.dueDate <= T && (c.assigneeId === me || c.rotation === 'anyone' || !c.assigneeId))
+    .filter((c) => !c.paused && c.dueDate <= T && isMine(c))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** Assigned to me, or open to anyone (rotation "anyone" or nobody assigned). */
+function isMine(c: Chore): boolean {
+  return c.assigneeId === myId() || c.rotation === 'anyone' || !c.assigneeId;
 }
 
 function dueLabel(c: Chore): string {
@@ -38,6 +42,11 @@ function complete(c: Chore, e?: MouseEvent): void {
   undoToast(t('chores.doneToast', { points: c.points }), undo, c.emoji);
 }
 
+/** Points a chore is worth, as a quiet badge. */
+function Points(props: { n: number }) {
+  return <span class="badge num">+{props.n}</span>;
+}
+
 export function ChoreRow(props: { chore: Chore; showAssignee?: boolean }) {
   const c = props.chore;
   const state = choreState(c, today());
@@ -46,28 +55,29 @@ export function ChoreRow(props: { chore: Chore; showAssignee?: boolean }) {
   return (
     <Row
       onClick={() => openChoreDetail(c.id)}
-      lead={<Tile emoji={c.emoji} color={state === 'overdue' ? 'var(--red)' : state === 'today' ? 'var(--amber)' : undefined} />}
+      lead={<Tile emoji={c.emoji} color={state === 'overdue' ? 'var(--red)' : undefined} />}
       title={c.title}
       sub={
-        <span class="hstack" style={{ gap: '6px' }}>
+        <span class="chore-sub">
           {props.showAssignee !== false ? (
             anyone ? (
-              <span>👐 {t('chores.anyone')}</span>
+              <>
+                <Icon name="users" size={15} class="faint" />
+                <span class="who">{t('chores.anyone')}</span>
+              </>
             ) : (
               <>
                 <Avatar member={assignee} size={18} />
-                <span>{displayName(c.assigneeId)}</span>
+                <span class="who">{displayName(c.assigneeId)}</span>
               </>
             )
           ) : null}
-          <span class={state === 'overdue' ? 'neg' : ''} style={{ fontWeight: state === 'overdue' ? 700 : undefined }}>
-            · {dueLabel(c)}
-          </span>
+          <span class={cx('when', state === 'overdue' && 'neg')}>· {dueLabel(c)}</span>
         </span>
       }
       end={
         <div class="hstack" style={{ gap: '10px' }}>
-          <span class="badge amber">+{c.points}</span>
+          <Points n={c.points} />
           {state !== 'paused' ? <Check on={false} big label={t('chore.markDone')} onClick={(e) => complete(c, e)} color="var(--green)" /> : null}
         </div>
       }
@@ -97,7 +107,7 @@ export function Chores() {
       <div key={tab} class="fade-in">
         {tab === 'upcoming' ? <Upcoming /> : tab === 'all' ? <AllChores /> : <Ranking />}
       </div>
-      <button type="button" class="fab" style={{ '--fab-bg': 'var(--amber)' }} onClick={() => openChoreEditor()}>
+      <button type="button" class="fab" onClick={() => openChoreEditor()}>
         <Icon name="plus" size={22} stroke={2.6} /> {t('chores.add')}
       </button>
     </div>
@@ -107,7 +117,6 @@ export function Chores() {
 function Upcoming() {
   const [mine, setMine] = useState(false);
   const T = today();
-  const me = myId();
   const all = list('chores').filter((c) => !c.paused);
   if (!list('chores').length) {
     return (
@@ -123,7 +132,7 @@ function Upcoming() {
       />
     );
   }
-  const visible = all.filter((c) => !mine || c.assigneeId === me || c.rotation === 'anyone').sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  const visible = all.filter((c) => !mine || isMine(c)).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   const groups: { key: string; title: string; items: Chore[] }[] = [
     { key: 'overdue', title: t('chores.overdue'), items: visible.filter((c) => c.dueDate < T) },
     { key: 'today', title: t('chores.today'), items: visible.filter((c) => c.dueDate === T) },
@@ -142,10 +151,12 @@ function Upcoming() {
         </button>
       </div>
       {pending === 0 ? (
-        <div class="card hstack mt-16" style={{ padding: '16px' }}>
-          <span style={{ fontSize: '30px' }}>✨</span>
+        <div class="card hstack mt-16" style={{ padding: '14px 16px' }}>
+          <span class="tile" style={{ background: 'var(--green-soft)', color: 'var(--green)' }}>
+            <Icon name="check" size={20} stroke={2.6} />
+          </span>
           <div>
-            <div style={{ fontWeight: 750 }}>{t('chores.allClearTitle')}</div>
+            <div style={{ fontWeight: 650 }}>{t('chores.allClearTitle')}</div>
             <div class="muted" style={{ fontSize: '14px' }}>
               {t('chores.allClearSub')}
             </div>
@@ -182,7 +193,7 @@ function AllChores() {
           lead={<Tile emoji={c.emoji} />}
           title={c.title}
           sub={`${freqLabel(c.frequency)} · ${t(`rot.${c.rotation}` as Key)}${c.paused ? ' · ' + t('chores.paused') : ''}`}
-          end={<span class="badge amber">+{c.points}</span>}
+          end={<Points n={c.points} />}
           chevron
         />
       ))}
@@ -211,9 +222,9 @@ function Ranking() {
         <div class="hstack" style={{ justifyContent: 'space-between' }}>
           <div>
             <div class="caption">{t('rank.month')}</div>
-            <div style={{ fontWeight: 800, fontSize: '19px' }}>👑 {t('rank.champion')}</div>
+            <div style={{ fontWeight: 700, fontSize: '18px' }}>{t('rank.champion')}</div>
           </div>
-          <span class="badge amber">{fmtDate(T, 'monthYear')}</span>
+          <span class="badge">{fmtDate(T, 'monthYear')}</span>
         </div>
         <div class="podium">
           {podium.map((e, i) => {
@@ -222,7 +233,7 @@ function Ranking() {
             const place = i === 1 ? 1 : i === 0 ? 2 : 3;
             return (
               <div key={e.memberId} class={`place p${place}`}>
-                {place === 1 ? <span style={{ fontSize: '22px', marginBottom: '-4px' }}>👑</span> : null}
+                {place === 1 ? <Icon name="crown" size={20} stroke={2.2} style={{ color: 'var(--amber)', marginBottom: '-2px' }} /> : null}
                 <Avatar member={m} size={place === 1 ? 58 : 48} />
                 <div class="name">{displayName(e.memberId)}</div>
                 <div class="pts num">{t('rank.points', { n: e.points })}</div>
@@ -242,7 +253,7 @@ function Ranking() {
               key={e.memberId}
               lead={
                 <span class="hstack" style={{ gap: '10px' }}>
-                  <span class="num faint" style={{ width: '16px', fontWeight: 800 }}>
+                  <span class="num faint" style={{ width: '16px', fontWeight: 650 }}>
                     {i + 1}
                   </span>
                   <Avatar member={m} size={38} />
@@ -253,11 +264,11 @@ function Ranking() {
               end={
                 <span class="hstack" style={{ gap: '8px' }}>
                   {streak >= 2 ? (
-                    <span class="badge amber" title={t('rank.streak', { n: streak })}>
-                      🔥 {streak}
+                    <span class="badge amber" title={t('rank.streak', { n: streak })} aria-label={t('rank.streak', { n: streak })}>
+                      <Icon name="flame" size={13} stroke={2.4} /> {streak}
                     </span>
                   ) : null}
-                  <span class="num" style={{ fontWeight: 800, fontSize: '17px' }}>
+                  <span class="num" style={{ fontWeight: 700, fontSize: '17px' }}>
                     {e.points}
                   </span>
                 </span>
@@ -280,7 +291,7 @@ function Ranking() {
           {ms.map((m) => (
             <span key={m.id} class="hstack caption" style={{ gap: '5px' }}>
               <i style={{ width: '9px', height: '9px', borderRadius: '50%', background: m.color, display: 'inline-block' }} />
-              {displayName(m.id)} {sum30 ? Math.round(((last30.get(m.id) ?? 0) / sum30) * 100) : 0} %
+              {displayName(m.id)} {percent(sum30 ? (last30.get(m.id) ?? 0) / sum30 : 0)}
             </span>
           ))}
         </div>
@@ -292,7 +303,7 @@ function Ranking() {
           <div class="section-title">{t('rank.recent')}</div>
           <div class="list">
             {recent.map((l) => (
-              <Row key={l.id} lead={<Tile emoji={l.emoji} size="sm" />} compact title={l.title} sub={`${displayName(l.memberId)} · ${timeAgo(l.createdAt)}`} end={<span class="badge green">+{l.points}</span>} />
+              <Row key={l.id} lead={<Tile emoji={l.emoji} size="sm" />} compact title={l.title} sub={`${displayName(l.memberId)} · ${timeAgo(l.createdAt)}`} end={<Points n={l.points} />} />
             ))}
           </div>
         </>
@@ -328,14 +339,14 @@ function ChoreDetail(props: { id: ID }) {
   const skip = async () => {
     await closeTopSheet();
     const undo = finishChore(c.id, 'skipped');
-    undoToast(t('chores.skippedToast'), undo, '⏭️');
+    undoToast(t('chores.skippedToast'), undo);
   };
   const del = async () => {
     const ok = await confirmDialog({ title: t('common.confirmDelete'), message: c.title, confirm: t('common.delete'), destructive: true, emoji: c.emoji });
     if (!ok) return;
     await closeTopSheet();
     const undo = remove('chores', c.id);
-    undoToast(t('chore.deleted'), undo, '🗑️');
+    undoToast(t('chore.deleted'), undo);
   };
 
   return (
@@ -350,20 +361,24 @@ function ChoreDetail(props: { id: ID }) {
     >
       <div class="center" style={{ marginTop: '-8px' }}>
         <Tile emoji={c.emoji} size="xl" color={state === 'overdue' ? 'var(--red)' : 'var(--amber)'} />
-        <h2 style={{ margin: '12px 0 4px', fontSize: '24px', letterSpacing: '-0.02em' }}>{c.title}</h2>
+        <h2 style={{ margin: '12px 0 4px', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }}>{c.title}</h2>
         <div class="muted">
           {freqLabel(c.frequency)} · {t('chore.pointsValue', { n: c.points })}
         </div>
         <div class="hstack" style={{ justifyContent: 'center', marginTop: '12px', gap: '8px', flexWrap: 'wrap' }}>
-          <span class={cx('badge', state === 'overdue' ? 'red' : state === 'today' ? 'amber' : '')}>📅 {dueLabel(c)}</span>
-          <span class="badge violet">🔄 {t(`rot.${c.rotation}` as Key)}</span>
+          <span class={cx('badge', state === 'overdue' ? 'red' : state === 'today' ? 'amber' : '')}>
+            <Icon name="calendar" size={13} stroke={2.4} /> {dueLabel(c)}
+          </span>
+          <span class="badge">
+            <Icon name="repeat" size={13} stroke={2.4} /> {t(`rot.${c.rotation}` as Key)}
+          </span>
         </div>
       </div>
       {c.description ? <p class="muted center">{c.description}</p> : null}
 
       <div class="list mt-16">
         <Row
-          lead={c.assigneeId ? <Avatar member={member(c.assigneeId)} size={40} /> : <Tile emoji="👐" />}
+          lead={c.assigneeId ? <Avatar member={member(c.assigneeId)} size={40} /> : <Tile icon="users" />}
           title={c.assigneeId ? displayName(c.assigneeId) : t('chores.anyone')}
           sub={after && after !== c.assigneeId ? (after === myId() ? t('chore.nextUpMe') : t('chore.nextUp', { name: displayName(after) })) : t('chore.assignee')}
         />
@@ -382,7 +397,7 @@ function ChoreDetail(props: { id: ID }) {
       ) : null}
 
       <div class="form-row mt-16">
-        <Button variant="primary" icon="check" onClick={done} style={{ background: 'var(--green)', boxShadow: 'none' }}>
+        <Button variant="primary" icon="check" onClick={done}>
           {t('chore.markDone')}
         </Button>
         <Button icon="skip" onClick={skip}>
@@ -403,7 +418,7 @@ function ChoreDetail(props: { id: ID }) {
               lead={<Avatar member={member(l.memberId)} size={30} />}
               title={displayName(l.memberId)}
               sub={l.action === 'skipped' ? t('chores.skippedToast') : fmtDate(l.date, 'weekday')}
-              end={l.action === 'done' ? <span class="badge green">+{l.points}</span> : <span class="badge">⏭️</span>}
+              end={l.action === 'done' ? <Points n={l.points} /> : <Icon name="skip" size={16} class="faint" />}
             />
           ))}
         </div>
@@ -544,7 +559,7 @@ function ChoreEditor(props: { id?: ID }) {
 
       <div class="overline" style={{ display: 'flex', justifyContent: 'space-between' }}>
         <span>{t('chore.effort')}</span>
-        <span style={{ textTransform: 'none', letterSpacing: 0 }} class="badge amber">
+        <span style={{ textTransform: 'none', letterSpacing: 0 }} class="badge">
           +{points} {t('common.points')}
         </span>
       </div>
@@ -558,9 +573,7 @@ function ChoreEditor(props: { id?: ID }) {
       <div class="template-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
         {(['rotate', 'fair', 'fixed', 'anyone'] as RotationMode[]).map((r) => (
           <button key={r} type="button" class={rotation === r ? 'active' : ''} onClick={() => setRotation(r)} style={{ alignItems: 'flex-start', textAlign: 'left', padding: '12px 14px' }}>
-            <span style={{ fontWeight: 750, fontSize: '15px' }}>
-              {r === 'rotate' ? '🔄' : r === 'fair' ? '⚖️' : r === 'fixed' ? '📌' : '👐'} {t(`rot.${r}` as Key)}
-            </span>
+            <span style={{ fontWeight: 650, fontSize: '15px' }}>{t(`rot.${r}` as Key)}</span>
             <span class="caption">{t(`rot.${r}Sub` as Key)}</span>
           </button>
         ))}
@@ -572,7 +585,7 @@ function ChoreEditor(props: { id?: ID }) {
           <MemberPicker members={ms} value={pool} multiple onChange={setPool} meId={myId()} />
           <div class="overline">{t('chore.assignee')}</div>
           <MemberPicker members={ms.filter((m) => pool.includes(m.id))} value={assignee ? [assignee] : []} onChange={(ids) => setAssignee(ids[0])} meId={myId()} />
-          {ms.some((m) => memberIsAway(m)) ? <p class="hint">🧳 {t('cal.awayHint')}</p> : null}
+          {ms.some((m) => memberIsAway(m)) ? <p class="hint">{t('cal.awayHint')}</p> : null}
         </>
       ) : null}
 

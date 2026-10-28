@@ -27,7 +27,7 @@ function HubTile(props: { icon: IconName; color: string; title: string; sub: str
         {props.badge ? <span class="badge red">{props.badge}</span> : null}
       </div>
       <div style={{ marginTop: 'auto' }}>
-        <div style={{ fontWeight: 750, fontSize: '16px' }}>{props.title}</div>
+        <div style={{ fontWeight: 650, fontSize: '16px' }}>{props.title}</div>
         <div class="t-sub" style={{ marginTop: '2px' }}>
           {props.sub}
         </div>
@@ -48,8 +48,8 @@ export function WgHub() {
     <div class="screen">
       <div style={{ paddingTop: '14px' }} />
       <div class="hero" style={{ textAlign: 'center', paddingTop: '26px' }}>
-        <div style={{ fontSize: '54px', lineHeight: 1 }}>{hh?.emoji}</div>
-        <div style={{ fontSize: '26px', fontWeight: 820, letterSpacing: '-0.03em', marginTop: '10px' }}>{hh?.name}</div>
+        <div style={{ fontSize: '44px', lineHeight: 1 }}>{hh?.emoji}</div>
+        <div style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.02em', marginTop: '10px' }}>{hh?.name}</div>
         {hh?.address ? <div class="sub" style={{ marginTop: '2px' }}>{hh.address}</div> : null}
         <div class="hstack" style={{ justifyContent: 'center', marginTop: '14px' }}>
           <AvatarStack members={ms} size={34} max={6} />
@@ -148,7 +148,7 @@ export function WifiScreen() {
     if (!ssid.trim()) return;
     update('household', hh.id, { wifiSsid: ssid.trim(), wifiPassword: password, wifiSecurity: security });
     setEditing(false);
-    toast(t('info.saved'), { emoji: '📶' });
+    toast(t('info.saved'));
   };
   return (
     <div class="screen">
@@ -205,7 +205,7 @@ export function InfoScreen() {
   const dirty = address !== (hh.address ?? '') || name !== (hh.landlordName ?? '') || phone !== (hh.landlordPhone ?? '') || email !== (hh.landlordEmail ?? '');
   const save = () => {
     update('household', hh.id, { address: address.trim() || undefined, landlordName: name.trim() || undefined, landlordPhone: phone.trim() || undefined, landlordEmail: email.trim() || undefined });
-    toast(t('info.saved'), { emoji: '🏠' });
+    toast(t('info.saved'));
   };
   return (
     <div class="screen">

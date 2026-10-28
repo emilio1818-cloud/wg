@@ -7,7 +7,7 @@ import { timeAgo } from '../i18n/format.ts';
 import { get, list, remove, update } from '../state/store.ts';
 import { firstName, household, member, myId } from '../state/selectors.ts';
 import { saveNote, toggleReaction } from '../state/actions.ts';
-import { Avatar, Button, ColorRow, Empty, Field, Icon, IconButton, TopBar } from '../components/core.tsx';
+import { Avatar, Button, ColorRow, cx, Empty, Field, Icon, IconButton, TopBar } from '../components/core.tsx';
 import { Sheet, toast, undoToast } from '../components/overlays.tsx';
 
 void Fragment;
@@ -22,7 +22,7 @@ export function Board() {
       <TopBar title={t('board.title')} fallback="/wg" />
       <button type="button" class="card mt-8" style={{ width: '100%', textAlign: 'left', display: 'block' }} onClick={() => openRulesEditor()}>
         <div class="hstack" style={{ justifyContent: 'space-between', marginBottom: '8px' }}>
-          <div style={{ fontWeight: 780, fontSize: '17px' }}>📜 {t('board.rules')}</div>
+          <div style={{ fontWeight: 650, fontSize: '17px' }}>{t('board.rules')}</div>
           <Icon name="pencil" size={17} class="faint" />
         </div>
         <div class={hh?.houseRules ? '' : 'muted'} style={{ whiteSpace: 'pre-wrap', fontSize: '15px', lineHeight: 1.55 }}>
@@ -34,23 +34,27 @@ export function Board() {
         <Empty art="📌" title={t('board.emptyTitle')} sub={t('board.emptySub')} />
       ) : (
         <div class="notes mt-16">
-          {notes.map((n, i) => {
+          {notes.map((n) => {
             const author = member(n.authorId);
             return (
-              <div key={n.id} class="note" style={{ '--nc': n.color, '--tilt': `${((i * 37) % 5) - 2}deg` }}>
-                {n.pinned ? <span class="pinned">📌</span> : null}
+              <div key={n.id} class={cx('note', n.pinned && 'is-pinned')} style={{ '--nc': n.color }}>
+                {n.pinned ? (
+                  <span class="pinned" aria-label={t('board.pin')}>
+                    <Icon name="pin" size={16} />
+                  </span>
+                ) : null}
                 <button type="button" class="text" style={{ textAlign: 'left', width: '100%', display: 'block', color: 'inherit' }} onClick={() => openNoteEditor(n.id)}>
                   {n.text}
                 </button>
                 <div class="reactions">
                   {Object.entries(n.reactions ?? {}).map(([emoji, ids]) => (
-                    <span key={emoji} role="button" onClick={() => toggleReaction(n.id, emoji)} style={ids.includes(myId()) ? { background: 'rgba(255,255,255,0.9)' } : undefined}>
+                    <button key={emoji} type="button" class={ids.includes(myId()) ? 'mine' : ''} aria-pressed={ids.includes(myId())} onClick={() => toggleReaction(n.id, emoji)}>
                       {emoji} {ids.length}
-                    </span>
+                    </button>
                   ))}
-                  <span role="button" aria-label="React" onClick={() => openReactionPicker(n.id)} style={{ opacity: 0.7 }}>
+                  <button type="button" aria-label={t('board.react')} title={t('board.react')} onClick={() => openReactionPicker(n.id)} style={{ opacity: 0.7 }}>
                     ＋
-                  </span>
+                  </button>
                 </div>
                 <div class="meta">
                   <Avatar member={author} size={18} />
@@ -61,7 +65,7 @@ export function Board() {
           })}
         </div>
       )}
-      <button type="button" class="fab" style={{ '--fab-bg': 'var(--orange)' }} onClick={() => openNoteEditor()}>
+      <button type="button" class="fab" onClick={() => openNoteEditor()}>
         <Icon name="plus" size={22} stroke={2.6} /> {t('board.add')}
       </button>
     </div>
@@ -104,13 +108,13 @@ function NoteEditor(props: { id?: ID }) {
     if (!text.trim()) return setError(t('board.textRequired'));
     saveNote({ text: text.trim(), color, pinned, authorId: existing?.authorId ?? myId(), reactions: existing?.reactions }, existing?.id);
     closeTopSheet();
-    toast(t('info.saved'), { emoji: '📌' });
+    toast(t('info.saved'));
   };
   const del = async () => {
     if (!existing) return;
     await closeTopSheet();
     const undo = remove('notes', existing.id);
-    undoToast(t('common.deleted'), undo, '🗑️');
+    undoToast(t('common.deleted'), undo);
   };
   return (
     <Sheet
@@ -129,7 +133,7 @@ function NoteEditor(props: { id?: ID }) {
     >
       <textarea
         class="textarea"
-        style={{ background: color, color: '#2a2433', minHeight: '160px', fontSize: '17px', fontWeight: 560, border: 0 }}
+        style={{ background: color, color: '#2a2433', minHeight: '160px', fontSize: '17px', fontWeight: 500, border: 0 }}
         placeholder={t('board.placeholder')}
         autoFocus
         value={text}
@@ -161,7 +165,7 @@ function RulesEditor() {
           onClick={() => {
             update('household', hh.id, { houseRules: rules.trim() || undefined });
             closeTopSheet();
-            toast(t('info.saved'), { emoji: '📜' });
+            toast(t('info.saved'));
           }}
         >
           {t('common.save')}

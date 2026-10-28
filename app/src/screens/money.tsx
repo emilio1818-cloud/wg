@@ -9,7 +9,7 @@ import { monthlyEquivalent, nextDue } from '../../../core/src/recurring.ts';
 import type { Expense, ExpenseCategory, Frequency, ID, Recurring, SplitMode } from '../../../core/src/types.ts';
 import { t } from '../i18n/index.ts';
 import type { Key } from '../i18n/index.ts';
-import { currencySymbol, fmtDate, freqLabel, money } from '../i18n/format.ts';
+import { currencySymbol, fmtDate, freqLabel, money, percent } from '../i18n/format.ts';
 import { get, list, remove } from '../state/store.ts';
 import { balances, displayName, firstName, member, members, myId, settleTransfers } from '../state/selectors.ts';
 import { bookDueRecurring, saveExpense, saveRecurring, settleUp } from '../state/actions.ts';
@@ -45,7 +45,7 @@ export function Money() {
         {tab === 'balances' ? <Balances /> : tab === 'history' ? <History /> : tab === 'recurring' ? <RecurringList /> : <Stats />}
       </div>
       {tab === 'recurring' ? (
-        <button type="button" class="fab" style={{ '--fab-bg': 'var(--green)' }} onClick={() => openRecurringEditor()}>
+        <button type="button" class="fab" onClick={() => openRecurringEditor()}>
           <Icon name="plus" size={22} stroke={2.6} /> {t('recurring.add')}
         </button>
       ) : (
@@ -120,9 +120,11 @@ function Balances() {
           </div>
         </>
       ) : (
-        <div class="card center" style={{ padding: '26px 16px' }}>
-          <div style={{ fontSize: '40px' }}>🎉</div>
-          <div style={{ fontWeight: 750, fontSize: '17px', marginTop: '6px' }}>{t('money.allSettled')}</div>
+        <div class="card center" style={{ padding: '24px 16px' }}>
+          <span class="tile" style={{ background: 'var(--green-soft)', color: 'var(--green)', borderRadius: '50%' }}>
+            <Icon name="check" size={22} stroke={2.6} />
+          </span>
+          <div style={{ fontWeight: 650, fontSize: '17px', marginTop: '10px' }}>{t('money.allSettled')}</div>
           <div class="muted" style={{ fontSize: '14.5px' }}>
             {t('money.allSettledSub')}
           </div>
@@ -271,13 +273,19 @@ function RecurringList() {
           return (
             <Row
               key={r.id}
+              class="multiline"
               onClick={() => openRecurringEditor(r.id)}
               lead={<Tile emoji={r.emoji ?? cat.emoji} color={cat.color} />}
               title={r.title}
               sub={
-                !r.active
-                  ? t('recurring.paused')
-                  : `${freqLabel(r.frequency)} · ${r.autoBook && next ? t('recurring.next', { date: fmtDate(next, 'dayMonth') }) : displayName(r.paidBy)}`
+                !r.active ? (
+                  t('recurring.paused')
+                ) : (
+                  <>
+                    <span class="line">{`${freqLabel(r.frequency)} · ${displayName(r.paidBy)}`}</span>
+                    {r.autoBook && next ? t('recurring.next', { date: fmtDate(next, 'dayMonth') }) : null}
+                  </>
+                )
               }
               end={
                 <>
@@ -312,26 +320,26 @@ function Stats() {
     const v = spendingStats(expenses, m, endOfMonth(m)).total;
     return { key: m, label: fmtDate(m, 'month'), value: v, current: i === 5, display: v ? money(v, { compact: true }) : '' };
   });
-  const delta = prev.total ? Math.round(((cur.total - prev.total) / prev.total) * 100) : null;
+  const delta = prev.total ? (cur.total - prev.total) / prev.total : null;
   return (
     <>
       <div class="hstack mt-16">
-        <IconButton icon="chevronLeft" label="prev" onClick={() => setMonth(addMonths(month, -1))} />
-        <div class="grow center" style={{ fontWeight: 750, fontSize: '17px' }}>
+        <IconButton icon="chevronLeft" label={t('common.prevMonth')} onClick={() => setMonth(addMonths(month, -1))} />
+        <div class="grow center" style={{ fontWeight: 650, fontSize: '17px' }}>
           {fmtDate(month, 'monthYear')}
         </div>
-        <IconButton icon="chevronRight" label="next" onClick={() => setMonth(addMonths(month, 1))} />
+        <IconButton icon="chevronRight" label={t('common.nextMonth')} onClick={() => setMonth(addMonths(month, 1))} />
       </div>
       <div class="card mt-12">
         <div class="caption">{t('money.totalMonth')}</div>
-        <div style={{ fontSize: '34px', fontWeight: 820, letterSpacing: '-0.03em' }} class="num">
+        <div style={{ fontSize: '32px', fontWeight: 700, letterSpacing: '-0.03em' }} class="num">
           {money(cur.total)}
         </div>
         <div class="hstack" style={{ gap: '8px', flexWrap: 'wrap' }}>
           <span class="badge primary num">
             {t('stats.avgPerPerson')} {money(Math.round(cur.total / Math.max(1, ms.length)))}
           </span>
-          {delta != null ? <span class={cx('badge num', delta > 0 ? 'red' : 'green')}>{t('stats.vsLast', { pct: (delta > 0 ? '+' : '') + delta + ' %' })}</span> : null}
+          {delta != null ? <span class={cx('badge num', delta > 0 ? 'red' : 'green')}>{t('stats.vsLast', { pct: percent(delta, { sign: true }) })}</span> : null}
         </div>
       </div>
 
@@ -344,7 +352,7 @@ function Stats() {
               center={
                 <>
                   <span style={{ fontSize: '24px' }}>{EXPENSE_CATEGORIES[slices[0]!.key as ExpenseCategory].emoji}</span>
-                  <span class="caption">{Math.round((slices[0]!.value / cur.total) * 100)} %</span>
+                  <span class="caption">{percent(slices[0]!.value / cur.total)}</span>
                 </>
               }
             />
@@ -497,7 +505,7 @@ function ExpenseEditor(props: { id?: ID; preset: Partial<Expense> }) {
     if (!existing) return;
     await closeTopSheet();
     const undo = remove('expenses', existing.id);
-    undoToast(t('expense.deleted'), undo, '🗑️');
+    undoToast(t('expense.deleted'), undo);
   };
 
   return (
@@ -596,7 +604,7 @@ function ExpenseEditor(props: { id?: ID; preset: Partial<Expense> }) {
                 ) : mode === 'shares' ? (
                   <div class="hstack" style={{ gap: '6px' }}>
                     <IconButton icon="minus" label="-" variant="soft" size={16} onClick={() => setValues({ ...values, [m.id]: String(Math.max(0, (Number(values[m.id] ?? 1) || 0) - 1)) })} />
-                    <span class="num" style={{ minWidth: '22px', textAlign: 'center', fontWeight: 750 }}>
+                    <span class="num" style={{ minWidth: '22px', textAlign: 'center', fontWeight: 650 }}>
                       {values[m.id] ?? '1'}
                     </span>
                     <IconButton icon="plus" label="+" variant="soft" size={16} onClick={() => setValues({ ...values, [m.id]: String((Number(values[m.id] ?? 1) || 0) + 1) })} />
@@ -630,8 +638,8 @@ function ExpenseEditor(props: { id?: ID; preset: Partial<Expense> }) {
       <Field label={t('expense.note')}>
         <input class="input" placeholder={t('expense.notePlaceholder')} value={note} maxLength={300} onInput={(e: any) => setNote(e.target.value)} />
       </Field>
-      {existing?.recurringId ? <p class="hint">🔁 {t('expense.fromRecurring')}</p> : null}
-      {existing?.listId ? <p class="hint">🛒 {t('expense.fromShopping')}</p> : null}
+      {existing?.recurringId ? <p class="hint">{t('expense.fromRecurring')}</p> : null}
+      {existing?.listId ? <p class="hint">{t('expense.fromShopping')}</p> : null}
       {error ? <div class="error-text center">{error}</div> : null}
     </Sheet>
   );
@@ -643,7 +651,7 @@ function TransferView(props: { e: Expense }) {
   const del = async () => {
     await closeTopSheet();
     const undo = remove('expenses', e.id);
-    undoToast(t('expense.deleted'), undo, '🗑️');
+    undoToast(t('expense.deleted'), undo);
   };
   return (
     <Sheet title={t('money.transfer')}>
@@ -653,7 +661,7 @@ function TransferView(props: { e: Expense }) {
           <Icon name="arrowRight" size={26} class="faint" />
           <Avatar member={member(to)} size={60} />
         </div>
-        <div style={{ fontSize: '40px', fontWeight: 820, marginTop: '14px', letterSpacing: '-0.03em' }} class="num">
+        <div style={{ fontSize: '36px', fontWeight: 700, marginTop: '14px', letterSpacing: '-0.03em' }} class="num">
           {money(e.amount)}
         </div>
         <div class="muted">
@@ -693,7 +701,7 @@ function SettleSheet(props: { tr?: Transfer }) {
     settleUp(from, to, amount, method);
     closeTopSheet();
     confetti(innerWidth / 2, innerHeight * 0.4);
-    toast(t('settle.done'), { emoji: '🤝' });
+    toast(t('settle.done'));
   };
 
   return (
@@ -715,7 +723,7 @@ function SettleSheet(props: { tr?: Transfer }) {
       <div class="chips">
         {(['paypal', 'bank', 'cash', 'other'] as const).map((m) => (
           <button key={m} type="button" class={cx('chip', method === m ? 'active' : 'soft')} onClick={() => setMethod(m)}>
-            {m === 'paypal' ? '🅿️' : m === 'bank' ? '🏦' : m === 'cash' ? '💶' : '✨'} {t(`method.${m}` as Key)}
+            {t(`method.${m}` as Key)}
           </button>
         ))}
       </div>
@@ -797,12 +805,12 @@ function RecurringEditor(props: { id?: ID }) {
     saveRecurring(data, existing?.id);
     const booked = bookDueRecurring();
     closeTopSheet();
-    toast(booked ? t('recurring.booked', { title: data.title }) : t('expense.saved'), { emoji: '🔁' });
+    toast(booked ? t('recurring.booked', { title: data.title }) : t('expense.saved'));
   };
 
   const del = async () => {
     if (!existing) return;
-    const ok = await confirmDialog({ title: t('common.confirmDelete'), message: existing.title, confirm: t('common.delete'), destructive: true, emoji: '🗑️' });
+    const ok = await confirmDialog({ title: t('common.confirmDelete'), message: existing.title, confirm: t('common.delete'), destructive: true });
     if (!ok) return;
     await closeTopSheet();
     const undo = remove('recurring', existing.id);

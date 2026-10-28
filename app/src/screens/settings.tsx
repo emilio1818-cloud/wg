@@ -76,9 +76,9 @@ export function Settings() {
   const toggleNotify = async (on: boolean) => {
     if (!on) return void disableNotifications();
     const result = await enableNotifications();
-    if (result === 'denied') toast(t('settings.notifDenied'), { emoji: '🔕' });
-    else if (result === 'unsupported') toast(t('settings.notifUnsupported'), { emoji: '🔕' });
-    else toast(t('settings.notifOn'), { emoji: '🔔' });
+    if (result === 'denied') toast(t('settings.notifDenied'));
+    else if (result === 'unsupported') toast(t('settings.notifUnsupported'));
+    else toast(t('settings.notifOn'));
   };
 
   const leave = async () => {
@@ -87,7 +87,6 @@ export function Settings() {
       message: s.mode === 'local' ? t('settings.leaveLocalSub') : s.mode === 'demo' ? undefined : t('settings.leaveSub'),
       confirm: s.mode === 'demo' ? t('settings.exitDemo') : t('settings.leave'),
       destructive: true,
-      emoji: '👋',
     });
     if (!ok) return;
     await leaveHousehold();
@@ -101,7 +100,7 @@ export function Settings() {
       <button type="button" class="card hstack mt-8" style={{ width: '100%', textAlign: 'left' }} onClick={() => openProfileEditor(myId())}>
         <Avatar member={self} size={56} />
         <div class="grow">
-          <div style={{ fontWeight: 780, fontSize: '18px' }}>{self?.name}</div>
+          <div style={{ fontWeight: 650, fontSize: '18px' }}>{self?.name}</div>
           <div class="muted" style={{ fontSize: '14px' }}>
             {t('members.edit')}
           </div>
@@ -157,9 +156,9 @@ export function Settings() {
         value={prefs.theme}
         onChange={(v) => setPrefs({ theme: v })}
         options={[
-          { value: 'system', label: `✨ ${t('theme.system')}` },
-          { value: 'light', label: `☀️ ${t('theme.light')}` },
-          { value: 'dark', label: `🌙 ${t('theme.dark')}` },
+          { value: 'system', label: t('theme.system') },
+          { value: 'light', label: t('theme.light') },
+          { value: 'dark', label: t('theme.dark') },
         ]}
       />
       <div class="overline">{t('settings.language')}</div>
@@ -171,8 +170,8 @@ export function Settings() {
         }}
         options={[
           { value: 'auto', label: t('lang.auto') },
-          { value: 'de', label: '🇩🇪 Deutsch' },
-          { value: 'en', label: '🇬🇧 English' },
+          { value: 'de', label: 'Deutsch' },
+          { value: 'en', label: 'English' },
         ]}
       />
 
@@ -192,7 +191,7 @@ export function Settings() {
 
       <div class="overline">{t('settings.data')}</div>
       <div class="list">
-        <Row lead={<Tile icon="download" color="var(--blue)" />} title={t('settings.export')} onClick={() => downloadFile(`nestly-${hh.name.replace(/\W+/g, '-').toLowerCase()}.json`, exportData())} chevron />
+        <Row lead={<Tile icon="download" color="var(--blue)" />} title={t('settings.export')} onClick={() => downloadFile(`nestly-${hh.name.replace(/[^\p{L}\d]+/gu, '-').toLowerCase()}.json`, exportData())} chevron />
         <Row lead={<Tile icon="receipt" color="var(--green)" />} title={t('settings.exportCsv')} onClick={() => downloadFile(`nestly-expenses.csv`, '﻿' + expensesCsv(), 'text/csv;charset=utf-8')} chevron />
       </div>
 
@@ -201,7 +200,7 @@ export function Settings() {
         <div class="hstack">
           <Tile icon="shield" color="var(--green)" />
           <div class="grow">
-            <div style={{ fontWeight: 750 }}>{t('settings.privacy')}</div>
+            <div style={{ fontWeight: 650 }}>{t('settings.privacy')}</div>
           </div>
         </div>
         <p class="muted" style={{ fontSize: '14px', margin: '10px 0 0' }}>

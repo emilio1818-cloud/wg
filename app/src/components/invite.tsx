@@ -30,7 +30,9 @@ export function InvitePanel() {
   if (s.mode === 'demo') {
     return (
       <div class="banner info">
-        <span class="b-emoji">🎭</span>
+        <span class="b-emoji">
+          <Icon name="info" size={20} />
+        </span>
         <div class="b-main">{t('invite.demo')}</div>
       </div>
     );
@@ -57,7 +59,7 @@ export function InvitePanel() {
             <Icon name="cloud" />
           </span>
           <div class="grow">
-            <div style={{ fontWeight: 750, fontSize: '17px' }}>{t('invite.localTitle')}</div>
+            <div style={{ fontWeight: 650, fontSize: '17px' }}>{t('invite.localTitle')}</div>
           </div>
         </div>
         <p class="muted" style={{ margin: '0 0 14px', fontSize: '14.5px' }}>
@@ -82,9 +84,9 @@ export function InvitePanel() {
     try {
       const res = await api.rotateInvite(s.serverUrl, s.householdId, s.token);
       setSession({ inviteCode: res.inviteCode });
-      toast(t('invite.rotated'), { emoji: '🔄' });
+      toast(t('invite.rotated'));
     } catch {
-      toast(t('error.network'), { emoji: '⚠️' });
+      toast(t('error.network'));
     }
   };
 
@@ -110,8 +112,8 @@ export function InvitePanel() {
           <Button block icon="link" onClick={() => copyText(link)}>
             {t('invite.copyLink')}
           </Button>
-          <Button block onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener')}>
-            <span style={{ fontSize: '18px' }}>💬</span> {t('invite.whatsapp')}
+          <Button block icon="send" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener')}>
+            {t('invite.whatsapp')}
           </Button>
         </div>
         <Button variant="ghost" block size="md" icon="refresh" onClick={rotate}>

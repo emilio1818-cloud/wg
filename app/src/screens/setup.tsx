@@ -17,6 +17,7 @@ import { firstName, household, members, myId } from '../state/selectors.ts';
 import { prefs, setPrefs } from '../state/prefs.ts';
 import { list, remove, store, update } from '../state/store.ts';
 import { Avatar, Button, Check, cx, Field, Icon, IconButton, Segmented } from '../components/core.tsx';
+import type { IconName } from '../lib/icons.ts';
 import { confetti, copyText, shareText } from '../components/overlays.tsx';
 import { inviteLink } from '../components/invite.tsx';
 import { openInvite } from './members.tsx';
@@ -301,7 +302,9 @@ function MembersStep(props: { nav: StepNav }) {
         </div>
       ) : s?.mode === 'local' ? (
         <div class="banner info mt-24">
-          <span class="b-emoji">☁️</span>
+          <span class="b-emoji">
+            <Icon name="cloud" size={20} />
+          </span>
           <div class="b-main">
             <div class="b-sub">{t('setup.members.local')}</div>
           </div>
@@ -806,19 +809,20 @@ function DoneStep() {
   const chores = list('chores').filter((c) => !c.paused);
   const lists = [...list('lists')].sort((a, b) => a.order - b.order);
   const names = (xs: string[]) => (xs.length > 4 ? `${xs.slice(0, 4).join(', ')} …` : xs.join(', '));
-  const rows: { step: StepKey; emoji: string; title: string; sub?: string; done: boolean }[] = [
+  // The flat keeps its own emoji; the other areas use the same icons as the rest of the app.
+  const rows: { step: StepKey; emoji?: string; icon?: IconName; title: string; sub?: string; done: boolean }[] = [
     { step: 'flat', emoji: hh.emoji, title: hh.name, sub: hh.address ?? t('setup.sum.noAddress'), done: !!hh.address },
-    { step: 'members', emoji: '👥', title: tp('setup.sum.members', ms.length), sub: names(ms.map((m) => firstName(m.name))), done: ms.length > 1 },
+    { step: 'members', icon: 'users', title: tp('setup.sum.members', ms.length), sub: names(ms.map((m) => firstName(m.name))), done: ms.length > 1 },
     {
       step: 'costs',
-      emoji: '💶',
+      icon: 'banknote',
       title: monthly ? t('setup.sum.costs', { total: money(monthly) }) : t('setup.sum.costsNone'),
       sub: monthly ? t('setup.costs.perPerson', { amount: money(Math.round(monthly / Math.max(1, ms.length))) }) : undefined,
       done: monthly > 0,
     },
-    { step: 'chores', emoji: '🧽', title: chores.length ? tp('setup.sum.chores', chores.length) : t('setup.sum.choresNone'), sub: names(chores.map((c) => c.title)), done: chores.length > 0 },
-    { step: 'lists', emoji: '🛒', title: tp('setup.sum.lists', lists.length), sub: names(lists.map((l) => l.name)), done: lists.length > 0 },
-    { step: 'wifi', emoji: '📶', title: hh.wifiSsid ? t('setup.sum.wifi') : t('setup.sum.wifiNone'), sub: hh.wifiSsid, done: !!hh.wifiSsid },
+    { step: 'chores', icon: 'sparkles', title: chores.length ? tp('setup.sum.chores', chores.length) : t('setup.sum.choresNone'), sub: names(chores.map((c) => c.title)), done: chores.length > 0 },
+    { step: 'lists', icon: 'cart', title: tp('setup.sum.lists', lists.length), sub: names(lists.map((l) => l.name)), done: lists.length > 0 },
+    { step: 'wifi', icon: 'wifi', title: hh.wifiSsid ? t('setup.sum.wifi') : t('setup.sum.wifiNone'), sub: hh.wifiSsid, done: !!hh.wifiSsid },
   ];
   const needsInvite = s?.mode === 'cloud' && ms.some((m) => !m.claimed);
 
@@ -845,7 +849,7 @@ function DoneStep() {
         <div class="list">
           {rows.map((r) => (
             <button key={r.step} type="button" class="row" onClick={() => go(r.step, true)}>
-              <span class="setup-emoji">{r.emoji}</span>
+              <span class="setup-emoji">{r.icon ? <Icon name={r.icon} size={20} /> : r.emoji}</span>
               <div class="main">
                 <div class="title">{r.title}</div>
                 {r.sub ? <div class="sub">{r.sub}</div> : null}
