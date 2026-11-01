@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Datenschutzerklärung – Nestly</title>
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <style>
+      :root { --bg: #f4f3f9; --card: #fff; --text: #17151f; --muted: #5d5a6b; --accent: #6b4ef6; --line: #e4e2ee; --soft: #efecfe; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0b0a11; --card: #16141f; --text: #f2f1f7; --muted: #a9a6b8; --accent: #9d8bff; --line: #2a2736; --soft: #221d3a; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+      main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+      .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+      h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+      h2 { font-size: 18px; margin: 28px 0 8px; }
+      p, ul { margin: 0 0 10px; }
+      ul { padding-left: 20px; }
+      li { margin-bottom: 4px; }
+      a { color: var(--accent); }
+      .muted { color: var(--muted); font-size: 14px; }
+      .summary { background: var(--soft); border-radius: 14px; padding: 16px 18px; margin: 18px 0 4px; }
+      .summary ul { margin: 0; }
+      nav { margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="card">
+        <h1>Datenschutzerklärung</h1>
+        <p class="muted">Stand: November 2026</p>
+
+        <div class="summary">
+          <strong>Kurz gesagt</strong>
+          <ul>
+            <li>Kein Konto mit E-Mail oder Passwort, keine Tracker, keine Analyse-Tools, keine Werbebanner.</li>
+            <li>Eure Einträge liegen auf euren Geräten und – damit eure WG synchron bleibt – auf unserem Sync-Server.</li>
+            <li>Wir verkaufen keine Daten und geben sie nicht an Dritte weiter.</li>
+          </ul>
+        </div>
+
+        <h2>Verantwortlicher</h2>
+        <p>{{name}}<br />{{address}}<br />E-Mail: <a href="mailto:{{email}}">{{email}}</a></p>
+
+        <h2>Daten auf deinem Gerät</h2>
+        <p>
+          Alles, was du in Nestly einträgst, speichert die App im Speicher deines Browsers bzw. deines Geräts
+          (IndexedDB und Local Storage), damit sie auch offline funktioniert. Das ist für den Betrieb der App
+          unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Cookies zu Tracking- oder Werbezwecken setzen wir nicht.
+          Die Daten werden gelöscht, wenn du die WG in den Einstellungen verlässt oder die Website-Daten bzw. die App löschst.
+        </p>
+
+        <h2>Synchronisation über unseren Server</h2>
+        <p>
+          Wenn ihr eine WG gemeinsam nutzt, speichert unser Sync-Server die Einträge eurer WG, damit sie auf allen
+          Geräten gleich sind. Dazu gehören je nach Nutzung: Namen und Profile der Mitbewohnis, Ausgaben und Salden,
+          Fixkosten, Putzplan, Einkaufslisten, Verträge (z. B. Anbieter, Kunden- und Zählernummern), Termine, Notizen,
+          die WG-Adresse, WLAN-Daten sowie Zahlungsangaben wie IBAN oder PayPal.me-Name, falls ihr sie eintragt.
+          Außerdem speichern wir einen Einladungscode für eure WG und für jedes Gerät einen Prüfwert (Hash) seines
+          zufälligen Zugangsschlüssels – den Schlüssel selbst nicht.
+        </p>
+        <p>
+          Zweck ist die Bereitstellung der App-Funktionen, Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO.
+          Die Daten bleiben gespeichert, solange eure WG besteht. Auf Anfrage an die oben genannte E-Mail-Adresse
+          löschen wir eure WG vollständig vom Server.
+        </p>
+        <!--IF:hosting-->
+        <p>
+          Der Server wird bei folgendem Anbieter betrieben, der die Daten in unserem Auftrag verarbeitet
+          (Art. 28 DSGVO):<br />{{hosting}}
+        </p>
+        <!--END:hosting-->
+
+        <h2>Server-Zugriffe und IP-Adresse</h2>
+        <p>
+          Beim Laden der App und bei jeder Synchronisation wird deine IP-Adresse technisch bedingt übertragen.
+          Unser Server nutzt sie nur kurzzeitig im Arbeitsspeicher, um Missbrauch zu begrenzen (Rate-Limiting), und
+          speichert sie weder in der Datenbank noch in Protokolldateien. Rechtsgrundlage ist unser berechtigtes
+          Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Der Hosting-Anbieter kann Verbindungsdaten
+          aus technischen Gründen kurzzeitig protokollieren.
+        </p>
+
+        <h2>Push-Benachrichtigungen (optional)</h2>
+        <p>
+          Wenn du Benachrichtigungen einschaltest, speichern wir die Push-Adresse deines Browsers samt
+          Verschlüsselungsschlüsseln, deine Mitglieds-ID in der WG, die Sprache und das Datum der letzten
+          Tageserinnerung. Zugestellt werden die Nachrichten über den Push-Dienst deines Browser- bzw.
+          Betriebssystemherstellers (z. B. Google, Apple, Mozilla, Microsoft). Der Inhalt ist Ende-zu-Ende
+          verschlüsselt (RFC 8291); der Push-Dienst sieht nur Adresse und Zeitpunkt. Diese Dienste können Daten
+          auch außerhalb der EU verarbeiten. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die
+          du jederzeit in den Einstellungen oder im Browser widerrufen kannst.
+        </p>
+
+        <!--IF:offers-->
+        <h2>Partnerlinks im Tarif-Check</h2>
+        <p>
+          Bei Verträgen, die gerade kündbar sind, kann Nestly einen als „Anzeige“ gekennzeichneten Link zu einem
+          Vergleichsportal anzeigen. Erst wenn du darauf tippst, öffnet sich die Website des Partners. Wir übermitteln
+          dabei keine Daten aus eurer WG; der Link enthält nur unsere Partnerkennung. Kommt über den Link ein Vertrag
+          zustande, erhalten wir unter Umständen eine Provision – für dich ändert sich der Preis nicht. Auf der
+          Partner-Website gilt dessen Datenschutzerklärung. Du kannst die Hinweise in den Einstellungen abschalten.
+        </p>
+        <!--END:offers-->
+
+        <h2>Links zu anderen Diensten</h2>
+        <p>
+          Nestly kann Links zu anderen Diensten öffnen, z. B. PayPal.me zum Begleichen, das Teilen-Menü deines Geräts
+          (etwa für WhatsApp), Telefon oder E-Mail. Was dort passiert, regelt der jeweilige Anbieter.
+          Wenn du Nestly über Google Play oder den App Store installierst, verarbeiten diese Stores Daten nach ihren
+          eigenen Bestimmungen.
+        </p>
+
+        <h2>Deine Rechte</h2>
+        <p>
+          Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der
+          Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20 – in der App jederzeit als JSON-Export) und Widerspruch
+          (Art. 21) sowie auf Widerruf erteilter Einwilligungen (Art. 7 Abs. 3). Außerdem kannst du dich bei einer
+          Datenschutz-Aufsichtsbehörde beschweren (Art. 77 DSGVO). Schreib uns einfach an
+          <a href="mailto:{{email}}">{{email}}</a>.
+        </p>
+      </div>
+      <nav>
+        <a href="./">← Zurück zur App</a>
+        <a href="impressum.html">Impressum</a>
+      </nav>
+    </main>
+  </body>
+</html>

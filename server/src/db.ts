@@ -84,6 +84,16 @@ export interface PushSubscriptionRow {
   createdAt: number;
 }
 
+export interface UsageStats {
+  households: number;
+  created: { d7: number; d30: number };
+  active: { d7: number; d30: number };
+  withTwoDevices: number;
+  devices: number;
+  pushSubscriptions: number;
+  contractsByCategory: Record<string, number>;
+}
+
 export type NewPushSubscription = Omit<PushSubscriptionRow, 'lastReminder' | 'createdAt'>;
 
 /**
@@ -231,6 +241,37 @@ export class Store {
       this.db.exec('ROLLBACK');
       throw err;
     }
+  }
+
+  /* ---------------------------------- stats ---------------------------------- */
+
+  /**
+   * Aggregate, anonymous usage numbers for the operator (no names, no content).
+   * "Active" means a record changed in the window; `updated_at` is the client clock in ms.
+   */
+  stats(now: number): UsageStats {
+    const day = 86_400_000;
+    const count = (sql: string, ...params: number[]) => Number((this.db.prepare(sql).get(...params) as { n: number }).n);
+    const createdSince = (ms: number) => count('SELECT COUNT(*) AS n FROM households WHERE created_at >= ?', now - ms);
+    const activeSince = (ms: number) => count('SELECT COUNT(DISTINCT household_id) AS n FROM records WHERE updated_at >= ?', now - ms);
+    const contracts = this.db
+      .prepare(
+        `SELECT json_extract(data, '$.category') AS category, COUNT(*) AS n FROM records
+         WHERE collection = 'contracts' AND COALESCE(json_extract(data, '$.deleted'), 0) = 0
+         GROUP BY category ORDER BY n DESC`,
+      )
+      .all() as { category: string | null; n: number }[];
+    return {
+      households: count('SELECT COUNT(*) AS n FROM households'),
+      created: { d7: createdSince(7 * day), d30: createdSince(30 * day) },
+      active: { d7: activeSince(7 * day), d30: activeSince(30 * day) },
+      // Activation: at least two devices joined — the flat share really uses Nestly together.
+      withTwoDevices: count(`SELECT COUNT(*) AS n FROM (
+        SELECT household_id FROM memberships WHERE revoked_at IS NULL GROUP BY household_id HAVING COUNT(DISTINCT member_id) >= 2)`),
+      devices: count('SELECT COUNT(*) AS n FROM memberships WHERE revoked_at IS NULL'),
+      pushSubscriptions: count('SELECT COUNT(*) AS n FROM push_subscriptions'),
+      contractsByCategory: Object.fromEntries(contracts.map((r) => [r.category ?? 'unknown', Number(r.n)])),
+    };
   }
 
   /* -------------------------------- households ------------------------------- */

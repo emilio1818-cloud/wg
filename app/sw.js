@@ -27,16 +27,22 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || url.pathname.includes('/api/')) return;
 
-  // Pages: network first so updates arrive quickly, cached shell when offline.
+  // Pages: network first so updates arrive quickly, cached copy when offline. Only the
+  // app itself is stored as the shell; standalone pages (imprint, privacy policy) are not.
   if (req.mode === 'navigate') {
+    const shell = /\/(index\.html)?$/.test(url.pathname);
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('./', copy));
+          if (shell && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('./', copy));
+          }
           return res;
         })
-        .catch(() => caches.match('./').then((r) => r || caches.match('index.html'))),
+        .catch(() =>
+          shell ? caches.match('./').then((r) => r || caches.match('index.html')) : caches.match(req, { ignoreSearch: true }).then((r) => r || caches.match('./')),
+        ),
     );
     return;
   }

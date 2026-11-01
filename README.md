@@ -86,7 +86,10 @@ liegt eine `fly.toml` bei.
 | `VAPID_SUBJECT` | `mailto:push@nestly.app` | Kontakt für die Push-Dienste |
 | `REMINDERS` | an | `0` schaltet die tägliche Push-Erinnerung (Putzplan, Kündigungsfristen) ab |
 | `PUSH_ALLOW_ANY_HOST` | – | `1` erlaubt Push-Endpunkte außerhalb der bekannten Push-Dienste (FCM, Mozilla, Apple, Microsoft) |
+| `ADMIN_TOKEN` | – | Schaltet `GET /api/admin/stats` frei: anonyme Kennzahlen (WGs, aktive WGs, Geräte, Verträge je Kategorie) für diesen Bearer-Token |
 | `NESTLY_SERVER_URL` *(Build)* | – | Sync-Server, den eine statisch gehostete App verwenden soll |
+| `NESTLY_OFFERS` *(Build)* | – | Tarif-Check: JSON mit Partnerlinks je Vertragsart, siehe [docs/offers.example.json](docs/offers.example.json) |
+| `NESTLY_OPERATOR_NAME`, `_ADDRESS`, `_EMAIL` *(Build)* | – | Betreiberangaben; erst damit entstehen `impressum.html` und `datenschutz.html` (optional `NESTLY_OPERATOR_PHONE`, `NESTLY_LEGAL_HOSTING`) |
 
 **Nur die App, ohne Server** (z. B. GitHub Pages): Die App funktioniert dann vollständig
 offline auf einem Gerät; Einladungen und Sync lassen sich später in der App mit einem

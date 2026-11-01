@@ -6,6 +6,7 @@ import { computeBalances, expenseImpact, isValidIban, paypalLink, simplifyDebts,
 import { dueOccurrences, monthlyEquivalent, nextDue, occurrence, recurringExpenseId, recurringToExpense } from '../src/recurring.ts';
 import { choreState, completeChore, isAway, leaderboard, nextAssignee, nextDueDate, weeklyStreak } from '../src/chores.ts';
 import { cancellableAnyTime, cancellationLetter, contractStatus, deadlineDaysLeft } from '../src/contracts.ts';
+import { offerReason, sanitizeOfferLinks } from '../src/offers.ts';
 import { categorizeItem, expenseCategoryForItems, listKind, parseItemInput } from '../src/shopping.ts';
 import { guessExpenseCategory } from '../src/categories.ts';
 import { formatInviteCode, normalizeInviteCode, uid } from '../src/ids.ts';
@@ -369,6 +370,57 @@ describe('contracts', () => {
     assert.match(letter, /Kundennummer: 123/);
     assert.match(letter, /zum 14\.03\.2027/);
     assert.match(cancellationLetter({ locale: 'en', holderName: 'L', provider: 'P', contractName: 'C', dateLine: 'x' }), /Dear Sir or Madam/);
+  });
+});
+
+describe('tariff check offers', () => {
+  const internet: Contract = {
+    id: 'i',
+    name: 'Internet',
+    provider: 'Telekom',
+    category: 'internet',
+    startDate: '2025-03-15',
+    minTermMonths: 24,
+    renewalMonths: 0,
+    noticeValue: 1,
+    noticeUnit: 'month',
+    ...base,
+  };
+  const reason = (c: Contract, day: string) => offerReason(c, contractStatus(c, day));
+  it('stays quiet during a minimum term far from its deadline', () => {
+    assert.equal(reason(internet, '2026-10-27'), null);
+  });
+  it('suggests comparing when the deadline is close, including its last day', () => {
+    assert.equal(reason(internet, '2027-01-01'), 'deadline');
+    assert.equal(reason(internet, '2027-02-14'), 'deadline');
+  });
+  it('suggests comparing when the contract can be ended any time', () => {
+    assert.equal(reason(internet, '2027-02-15'), 'anyTime');
+    assert.equal(reason(internet, '2027-06-01'), 'anyTime');
+  });
+  it('suggests a follow-up contract after cancelling, but not once it has ended', () => {
+    assert.equal(reason({ ...internet, cancelled: true, endDate: '2027-03-14' }, '2026-10-27'), 'cancelled');
+    assert.equal(reason({ ...internet, cancelled: true, endDate: '2026-01-31' }, '2026-10-27'), null);
+  });
+  it('only covers categories where switching is common', () => {
+    assert.equal(reason({ ...internet, category: 'broadcast' }, '2027-06-01'), null);
+    assert.equal(reason({ ...internet, category: 'rent' }, '2027-06-01'), null);
+    assert.equal(reason({ ...internet, category: 'electricity' }, '2027-06-01'), 'anyTime');
+    assert.equal(reason({ ...internet, startDate: undefined, noticeValue: undefined }, '2026-10-27'), null);
+  });
+  it('keeps only https partner links for known categories', () => {
+    const links = sanitizeOfferLinks({
+      electricity: ' https://partner.example/strom?id=42 ',
+      internet: 'http://partner.example/dsl',
+      gas: 'javascript:alert(1)',
+      phone: 'https://user:pw@partner.example/',
+      rent: 'https://partner.example/miete',
+      liability: 42,
+      insurance: 'not a url',
+    });
+    assert.deepEqual(links, { electricity: 'https://partner.example/strom?id=42' });
+    assert.deepEqual(sanitizeOfferLinks(null), {});
+    assert.deepEqual(sanitizeOfferLinks(['https://x.example']), {});
   });
 });
 

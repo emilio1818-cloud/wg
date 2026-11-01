@@ -41,6 +41,8 @@ export interface AppOptions {
   vapidKeys?: VapidKeys | null;
   /** Accept push endpoints on any https host, not only the known browser push services. */
   pushAnyHost?: boolean;
+  /** Bearer token for `GET /api/admin/stats`; without it the endpoint does not exist. */
+  adminToken?: string | null;
 }
 
 export interface App {
@@ -459,6 +461,7 @@ export function createApp(options: AppOptions): App {
     throw err;
   }
   const pushSubject = options.pushSubject || DEFAULT_PUSH_SUBJECT;
+  const adminTokenHash = options.adminToken ? crypto.createHash('sha256').update(options.adminToken).digest() : null;
 
   /* ------------------------------ SSE listeners ------------------------------ */
 
@@ -872,6 +875,15 @@ export function createApp(options: AppOptions): App {
     if (resource === 'push' && param === 'key' && action === undefined) {
       allow(req, 'GET');
       return sendJson(res, 200, { publicKey: vapidKeys.publicKey });
+    }
+
+    if (resource === 'admin' && param === 'stats' && action === undefined) {
+      if (!adminTokenHash) throw notFound();
+      allow(req, 'GET');
+      const token = /^Bearer\s+(\S+)\s*$/i.exec(req.headers.authorization ?? '')?.[1];
+      const given = crypto.createHash('sha256').update(token ?? '').digest();
+      if (!token || !crypto.timingSafeEqual(given, adminTokenHash)) throw unauthorized('Invalid admin token');
+      return sendJson(res, 200, store.stats(Date.now()));
     }
 
     if (resource === 'invites' && param) {

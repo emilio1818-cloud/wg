@@ -617,6 +617,49 @@ describe('sync server', () => {
   });
 });
 
+describe('admin stats', () => {
+  it('does not exist without ADMIN_TOKEN', async () => {
+    const srv = await start();
+    try {
+      assert.equal((await request(srv.base, 'GET', '/api/admin/stats', { token: 'anything' })).status, 404);
+    } finally {
+      await srv.close();
+    }
+  });
+
+  it('returns aggregate numbers only for the admin token', async () => {
+    const srv = await start({ adminToken: 'sekret-admin-token' });
+    try {
+      assert.equal((await request(srv.base, 'GET', '/api/admin/stats')).status, 401);
+      assert.equal((await request(srv.base, 'GET', '/api/admin/stats', { token: 'wrong' })).status, 401);
+
+      const now = Date.now();
+      const solo = await createHousehold(srv.base, [rec('contracts', uid('c'), now, { name: 'Strom', category: 'electricity' })]);
+      const shared = await createHousehold(srv.base, [
+        rec('contracts', uid('c'), now, { name: 'Internet', category: 'internet' }),
+        rec('contracts', uid('c'), now, { name: 'Alt', category: 'electricity', deleted: true }),
+      ]);
+      const roommate = uid('m');
+      assert.equal((await join(srv.base, shared.inviteCode, roommate, [rec('members', roommate, now, { name: 'Ben' })])).status, 200);
+      void solo;
+
+      const res = await request(srv.base, 'GET', '/api/admin/stats', { token: 'sekret-admin-token' });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.households, 2);
+      assert.deepEqual(res.body.created, { d7: 2, d30: 2 });
+      assert.deepEqual(res.body.active, { d7: 2, d30: 2 });
+      assert.equal(res.body.withTwoDevices, 1);
+      assert.equal(res.body.devices, 3);
+      assert.equal(res.body.pushSubscriptions, 0);
+      assert.deepEqual(res.body.contractsByCategory, { electricity: 1, internet: 1 });
+      // Nothing that identifies a flat share or a person.
+      assert.doesNotMatch(JSON.stringify(res.body), /Sonnenallee|Anna|Ben|Strom/);
+    } finally {
+      await srv.close();
+    }
+  });
+});
+
 describe('rate limiting', () => {
   it('limits invite lookups to 30 per minute per IP', async () => {
     const srv = await start({ rateLimit: true });

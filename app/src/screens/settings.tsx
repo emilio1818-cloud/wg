@@ -16,6 +16,7 @@ import { openInvite } from './members.tsx';
 import { canInstall } from '../state/install.ts';
 import { disableNotifications, enableNotifications, notificationsEnabled } from '../state/push.ts';
 import { openInstall } from '../components/install.tsx';
+import { legalPagesAvailable, offersConfigured } from '../state/offers.ts';
 
 void Fragment;
 
@@ -195,6 +196,15 @@ export function Settings() {
         <Row lead={<Tile icon="receipt" color="var(--green)" />} title={t('settings.exportCsv')} onClick={() => downloadFile(`nestly-expenses.csv`, '﻿' + expensesCsv(), 'text/csv;charset=utf-8')} chevron />
       </div>
 
+      {offersConfigured() ? (
+        <>
+          <div class="overline">{t('contract.title')}</div>
+          <div class="list">
+            <SwitchRow lead={<Tile icon="trending" color="var(--green)" />} title={t('settings.offers')} sub={t('settings.offersHint')} on={prefs.offers !== false} onChange={(on) => setPrefs({ offers: on })} />
+          </div>
+        </>
+      ) : null}
+
       <div class="overline">{t('settings.about')}</div>
       <div class="card">
         <div class="hstack">
@@ -204,9 +214,15 @@ export function Settings() {
           </div>
         </div>
         <p class="muted" style={{ fontSize: '14px', margin: '10px 0 0' }}>
-          {t('settings.privacyText')}
+          {offersConfigured() ? t('settings.privacyTextOffers') : t('settings.privacyText')}
         </p>
       </div>
+      {legalPagesAvailable() ? (
+        <div class="list mt-12">
+          <Row lead={<Tile icon="shield" color="var(--blue)" />} title={t('settings.privacyPolicy')} onClick={() => window.open('datenschutz.html', '_blank', 'noopener')} end={<Icon name="external" size={16} class="faint" />} />
+          <Row lead={<Tile icon="info" color="var(--text-3)" />} title={t('settings.imprint')} onClick={() => window.open('impressum.html', '_blank', 'noopener')} end={<Icon name="external" size={16} class="faint" />} />
+        </div>
+      ) : null}
 
       <Button variant="danger" block class="mt-24" icon="logout" onClick={leave}>
         {s.mode === 'demo' ? t('settings.exitDemo') : t('settings.leave')}

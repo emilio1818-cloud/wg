@@ -1,0 +1,8 @@
+{
+  "electricity": "https://partner.example/strom?partner=DEINE-ID",
+  "gas": "https://partner.example/gas?partner=DEINE-ID",
+  "internet": "https://partner.example/dsl?partner=DEINE-ID",
+  "phone": "https://partner.example/handytarife?partner=DEINE-ID",
+  "liability": "https://partner.example/haftpflicht?partner=DEINE-ID",
+  "insurance": "https://partner.example/hausrat?partner=DEINE-ID"
+}

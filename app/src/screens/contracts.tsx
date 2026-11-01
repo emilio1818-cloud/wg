@@ -11,6 +11,9 @@ import { currencySymbol, fmtDate, money } from '../i18n/format.ts';
 import { get, list, remove, update } from '../state/store.ts';
 import { displayName, household, member, members, myId } from '../state/selectors.ts';
 import { saveContract } from '../state/actions.ts';
+import { offerLink } from '../state/offers.ts';
+import { setPrefs } from '../state/prefs.ts';
+import { offerReason } from '../../../core/src/offers.ts';
 import { Avatar, Button, cx, Empty, Field, Icon, IconButton, MemberPicker, Row, SwitchRow, Tile, TopBar } from '../components/core.tsx';
 import { confirmDialog, copyText, Sheet, shareText, toast, undoToast } from '../components/overlays.tsx';
 
@@ -142,6 +145,49 @@ function CopyRow(props: { label: string; value?: string }) {
   );
 }
 
+/** Kinds where the new provider usually handles cancelling the old contract. */
+const SWITCH_SERVICE: readonly ContractCategory[] = ['electricity', 'gas', 'internet', 'phone'];
+
+/**
+ * Tarif-Check: a labelled partner link at the moment the household can switch.
+ * Renders nothing without a configured link, when switched off, or when the contract is not switchable now.
+ */
+function TariffCheck(props: { c: Contract; s: ContractStatus; inLetter?: boolean }) {
+  const { c } = props;
+  const reason = offerReason(c, props.s);
+  const href = reason ? offerLink(c.category) : null;
+  if (!reason || !href) return null;
+  const energy = c.category === 'electricity' || c.category === 'gas';
+  const title = props.inLetter && SWITCH_SERVICE.includes(c.category) ? t('offer.letterTitle') : t(`offer.title.${reason}`);
+  const sub = props.inLetter && SWITCH_SERVICE.includes(c.category) ? t('offer.letterSub') : reason === 'cancelled' && energy ? t('offer.sub.cancelledEnergy') : t(`offer.sub.${reason}`);
+  const hide = () => {
+    setPrefs({ offers: false });
+    toast(t('offer.hidden'));
+  };
+  return (
+    <div class="card mt-12 tariff-check">
+      <div class="hstack" style={{ alignItems: 'flex-start' }}>
+        <Tile icon="trending" color="var(--green)" />
+        <div class="grow">
+          <div style={{ fontWeight: 650 }}>{title}</div>
+          <div class="muted" style={{ fontSize: '14px', marginTop: '2px' }}>
+            {sub}
+          </div>
+        </div>
+      </div>
+      <Button block icon="external" class="mt-12" onClick={() => window.open(href, '_blank', 'noopener')}>
+        {t('offer.cta')}
+      </Button>
+      <div class="hstack caption mt-8" style={{ justifyContent: 'space-between', gap: '12px' }}>
+        <span>{t('offer.disclosure')}</span>
+        <button type="button" class="caption" style={{ textDecoration: 'underline', flexShrink: 0 }} onClick={hide}>
+          {t('offer.hide')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function ContractDetail(props: { id: ID }) {
   const c = get('contracts', props.id);
   if (!c) {
@@ -237,6 +283,8 @@ export function ContractDetail(props: { id: ID }) {
           </div>
         ) : null}
       </div>
+
+      <TariffCheck c={c} s={s} />
 
       <div class="section-title">{t('contract.cancelSection')}</div>
       <div class="stack">
@@ -350,6 +398,7 @@ function LetterSheet(props: { id: ID }) {
           <Button icon="printer" onClick={() => window.print()} label={t('contract.print')} />
         </div>
       </div>
+      <TariffCheck c={c} s={s} inLetter />
     </Sheet>
   );
 }

@@ -369,4 +369,48 @@ describe('Nestly end-to-end', () => {
     assert.deepEqual(d.errors, []);
     await d.ctx.close();
   });
+  it('shows the labelled Tarif-Check only when partner links are configured, and hides it on request', async () => {
+    const d = await device();
+    const { page } = d;
+    // Simulate a build with NESTLY_OFFERS (the default build ships without partner links).
+    await page.route('**/config.js*', (route) =>
+      route.fulfill({
+        contentType: 'text/javascript',
+        body: 'window.NESTLY_CONFIG = ' + JSON.stringify({ offers: { electricity: 'https://partner.example/strom?pid=1', insurance: 'https://partner.example/hausrat' } }),
+      }),
+    );
+    await d.ctx.route('https://partner.example/**', (route) => route.fulfill({ contentType: 'text/html', body: 'partner' }));
+    await page.goto(base + '?nosw');
+    await page.getByRole('button', { name: 'Erstmal umschauen' }).click();
+    await page.getByText('Alex 👋').waitFor();
+
+    // The demo's electricity deadline is a few weeks away: the card shows, labelled as an ad.
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).click();
+    const card = page.locator('.tariff-check');
+    await card.getByText('Anzeige', { exact: false }).waitFor();
+    const [popup] = await Promise.all([page.waitForEvent('popup'), card.getByRole('button', { name: 'Tarife vergleichen' }).click()]);
+    await popup.waitForLoadState();
+    assert.equal(popup.url(), 'https://partner.example/strom?pid=1');
+    await popup.close();
+
+    // Insurance renews in months and the internet contract has no link: no card.
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'HUK24' }).click();
+    await page.getByText('Laufzeit', { exact: true }).waitFor();
+    assert.equal(await page.locator('.tariff-check').count(), 0);
+
+    // "Ausblenden" switches the hints off; the settings switch brings them back.
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).click();
+    await card.getByRole('button', { name: 'Ausblenden' }).click();
+    await card.waitFor({ state: 'detached' });
+    await page.evaluate(() => (location.hash = '#/wg/settings'));
+    await page.getByRole('switch', { name: 'Spar-Tipps bei Verträgen' }).click();
+    await page.evaluate(() => (location.hash = '#/wg/contracts'));
+    await page.locator('.list .row', { hasText: 'Stadtwerke Berlin' }).click();
+    await card.waitFor();
+    assert.deepEqual(d.errors, []);
+    await d.ctx.close();
+  });
 });

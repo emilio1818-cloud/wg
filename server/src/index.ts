@@ -16,6 +16,7 @@
  *   VAPID_SUBJECT  contact for push services (default mailto:push@nestly.app)
  *   REMINDERS    `0` → no daily push reminders
  *   PUSH_ALLOW_ANY_HOST  `1` → accept push endpoints outside the known push services
+ *   ADMIN_TOKEN  enables GET /api/admin/stats (aggregate usage numbers) for this bearer token
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -60,6 +61,7 @@ try {
     reminders: env.REMINDERS !== '0',
     pushAnyHost: env.PUSH_ALLOW_ANY_HOST === '1',
     pushSubject: env.VAPID_SUBJECT || undefined,
+    adminToken: env.ADMIN_TOKEN?.trim() || null,
     vapidKeys: vapidPublicKey && vapidPrivateKey ? { publicKey: vapidPublicKey, privateKey: vapidPrivateKey } : null,
   });
 } catch (err) {

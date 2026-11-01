@@ -16,6 +16,8 @@ export interface Prefs {
   pushEndpoint?: string;
   /** Fallback sync server for static hosting (e.g. GitHub Pages). */
   serverUrl?: string;
+  /** Tarif-Check partner links on contracts; `false` once the user switched them off. */
+  offers?: boolean;
 }
 
 const KEY = 'nestly:prefs';
