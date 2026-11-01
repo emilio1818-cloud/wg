@@ -42,6 +42,8 @@ jobs:
           NESTLY_OPERATOR_EMAIL: ${{ vars.NESTLY_OPERATOR_EMAIL }}
           NESTLY_OPERATOR_PHONE: ${{ vars.NESTLY_OPERATOR_PHONE }}
           NESTLY_LEGAL_HOSTING: ${{ vars.NESTLY_LEGAL_HOSTING }}
+          NESTLY_TWA_PACKAGE: ${{ vars.NESTLY_TWA_PACKAGE }}
+          NESTLY_TWA_SHA256: ${{ vars.NESTLY_TWA_SHA256 }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

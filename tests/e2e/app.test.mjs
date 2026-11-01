@@ -151,8 +151,8 @@ describe('Nestly end-to-end', () => {
     await page.getByText('3 Einkaufslisten').waitFor();
     await snap(page, 'setup-7-done');
     await page.getByRole('button', { name: 'Zur WG' }).click();
-    await page.getByText('Guten', { exact: false }).first().waitFor();
-    await page.getByText('Emil 👋').waitFor();
+    // The greeting depends on the time of day (Guten Morgen / Hallo / Guten Abend / Gute Nacht).
+    await page.getByText(/^(Guten Morgen|Hallo|Guten Abend|Gute Nacht), Emil/).first().waitFor();
   });
 
   it('lets a roommate join with the invite link and claim their profile', async () => {

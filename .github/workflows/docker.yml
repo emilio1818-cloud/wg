@@ -35,5 +35,15 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Same build settings as the Pages deploy (repository variables, see docs/LAUNCH.md).
+          build-args: |
+            NESTLY_OFFERS=${{ vars.NESTLY_OFFERS }}
+            NESTLY_OPERATOR_NAME=${{ vars.NESTLY_OPERATOR_NAME }}
+            NESTLY_OPERATOR_ADDRESS=${{ vars.NESTLY_OPERATOR_ADDRESS }}
+            NESTLY_OPERATOR_EMAIL=${{ vars.NESTLY_OPERATOR_EMAIL }}
+            NESTLY_OPERATOR_PHONE=${{ vars.NESTLY_OPERATOR_PHONE }}
+            NESTLY_LEGAL_HOSTING=${{ vars.NESTLY_LEGAL_HOSTING }}
+            NESTLY_TWA_PACKAGE=${{ vars.NESTLY_TWA_PACKAGE }}
+            NESTLY_TWA_SHA256=${{ vars.NESTLY_TWA_SHA256 }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

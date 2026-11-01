@@ -1,0 +1,8 @@
+# HTTPS certificates are fetched and renewed automatically for {$DOMAIN}.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy nestly:8787 {
+		# Server-Sent Events (live sync) must not be buffered.
+		flush_interval -1
+	}
+}

@@ -15,6 +15,9 @@
  *   NESTLY_OPERATOR_EMAIL    app/legal/ and links them in the settings
  *   NESTLY_OPERATOR_PHONE    optional phone number for the imprint
  *   NESTLY_LEGAL_HOSTING     optional hosting provider (name and address) for the privacy policy
+ *   NESTLY_TWA_PACKAGE       Android package name of the Play Store app (Trusted Web Activity) –
+ *   NESTLY_TWA_SHA256        with the signing certificate fingerprint(s), comma-separated, this
+ *                            writes .well-known/assetlinks.json so the app opens without a URL bar
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -97,6 +100,21 @@ function renderLegal(hasOffers) {
   return true;
 }
 
+/** Digital Asset Links for the Play Store app (Trusted Web Activity), if configured. */
+function writeAssetLinks() {
+  const pkg = process.env.NESTLY_TWA_PACKAGE?.trim();
+  const fingerprints = (process.env.NESTLY_TWA_SHA256 ?? '').split(',').map((f) => f.trim().toUpperCase()).filter(Boolean);
+  if (!pkg || !fingerprints.length) return;
+  const bad = fingerprints.filter((f) => !/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f));
+  if (!/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(pkg) || bad.length) {
+    console.error(`✖ NESTLY_TWA_PACKAGE/NESTLY_TWA_SHA256 invalid (${bad.length ? 'fingerprint ' + bad.join(', ') : 'package ' + pkg})`);
+    process.exit(1);
+  }
+  const links = [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: pkg, sha256_cert_fingerprints: fingerprints } }];
+  fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
+  fs.writeFileSync(path.join(dist, '.well-known', 'assetlinks.json'), JSON.stringify(links, null, 2) + '\n');
+}
+
 /** Copies assets and regenerates index.html, config.js and sw.js. */
 function finalize() {
   copyDir(path.join(app, 'public'), dist);
@@ -106,6 +124,7 @@ function finalize() {
   const legal = renderLegal(Object.keys(offers).length > 0);
   const config = { serverUrl: serverUrl || undefined, offers: Object.keys(offers).length ? offers : undefined, legal: legal || undefined };
   fs.writeFileSync(path.join(dist, 'config.js'), `window.NESTLY_CONFIG = ${JSON.stringify(config)};\n`);
+  writeAssetLinks();
 
   const files = walk(dist).filter((f) => f !== 'sw.js' && f !== 'index.html' && !f.endsWith('.map'));
   const hash = createHash('sha256');
@@ -121,7 +140,7 @@ function finalize() {
     .replace('<!--MODULEPRELOAD-->', preload);
   fs.writeFileSync(path.join(dist, 'index.html'), html);
 
-  const precache = ['./', 'index.html', ...files.filter((f) => !f.startsWith('icons/og-') && f !== '404.html' && f !== '.nojekyll')];
+  const precache = ['./', 'index.html', ...files.filter((f) => !f.startsWith('icons/og-') && !f.startsWith('.well-known/') && f !== '404.html' && f !== '.nojekyll')];
   const sw = fs.readFileSync(path.join(app, 'sw.js'), 'utf8').replaceAll('__VERSION__', version).replace('__PRECACHE__', JSON.stringify(precache, null, 2));
   fs.writeFileSync(path.join(dist, 'sw.js'), sw);
   fs.writeFileSync(path.join(dist, '.nojekyll'), '');

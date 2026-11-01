@@ -1,0 +1,42 @@
+# Production on one small VPS: Nestly (app + sync server) behind Caddy with automatic HTTPS.
+#
+#   1. Point the DNS A/AAAA record of your domain (e.g. app.example.de) at the server.
+#   2. Copy this folder to the server, then:
+#        echo "DOMAIN=app.example.de" > .env
+#        echo "ADMIN_TOKEN=$(openssl rand -hex 24)" >> .env
+#        docker compose up -d
+#   3. Update later with: docker compose pull && docker compose up -d
+#
+# The image is built by .github/workflows/docker.yml with the repository variables
+# (partner links, imprint/privacy details, Android asset links) – see docs/LAUNCH.md.
+services:
+  nestly:
+    image: ghcr.io/emilio1818-cloud/wg:latest
+    restart: unless-stopped
+    volumes:
+      - nestly-data:/data
+    environment:
+      TRUST_PROXY: '1'
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:push@nestly.app}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - nestly
+
+volumes:
+  nestly-data:
+  caddy-data:
+  caddy-config:
