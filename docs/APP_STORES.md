@@ -61,6 +61,10 @@ Recommended native integrations (small, isolated changes):
 
 ## Store listing (suggested)
 
+Ready-to-paste German/English texts, the Data safety answers and the feature graphic are in
+[store/PLAY_STORE.md](store/PLAY_STORE.md); the step-by-step launch is in [LAUNCH.md](LAUNCH.md).
+
+
 * **Name:** Nestly – WG-App & Putzplan
 * **Subtitle:** Kosten teilen, Einkauf, Verträge
 * **Category:** Lifestyle (secondary: Finance / Productivity)

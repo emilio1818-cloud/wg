@@ -1,7 +1,7 @@
 # Nestly – Produktkonzept
 
 > **Euer Zuhause. Geregelt.** Eine App für alles, was in einer WG anfällt: Geld, Putzplan,
-> Einkauf, Verträge, Fixkosten, Kalender – kostenlos, ohne Werbung, ohne Zwangs-Account.
+> Einkauf, Verträge, Fixkosten, Kalender – kostenlos, ohne Werbebanner, ohne Zwangs-Account.
 
 ## 1. Ausgangslage
 
@@ -40,7 +40,7 @@ meiste Streit und das meiste verschenkte Geld.
    „abwesend“ ist, wird im Putzplan übersprungen.
 2. **Fair ohne Diskussion.** Saldo, Ausgleichsvorschläge mit minimaler Anzahl an
    Überweisungen, Putz-Punkte mit Fairness-Check – Zahlen statt Vorwürfe.
-3. **Respektiert euch.** Keine Werbung, keine Tracker, kein Account mit E-Mail und
+3. **Respektiert euch.** Keine Werbebanner, keine Tracker, kein Account mit E-Mail und
    Passwort. Offline-fähig. Eure Daten gehören euch (Export jederzeit, selbst hostbar).
 
 ### Name & Marke
@@ -133,20 +133,17 @@ WG-nah („Mitbewohnis“, „Stark! +30 Punkte“), aber nie albern bei Geld un
 ### App Store Optimization
 * Titel: *Nestly – WG-App & Putzplan*; Untertitel: *Kosten teilen, Einkauf, Verträge*.
 * Keywords (DE): WG, Putzplan, Mitbewohner, Kosten teilen, Haushaltsbuch, Einkaufsliste,
-  Splitwise Alternative, Haushaltsplan, Nebenkosten, Kündigung.
+  Haushaltsplan, Nebenkosten, Kündigung. (Namen anderer Apps nie im Store-Eintrag – nur in
+  Videos, Posts und auf Webseiten. Fertige Texte: [store/PLAY_STORE.md](store/PLAY_STORE.md).)
 * Keywords (EN): flatshare, roommates, chores, split bills, shared expenses, shopping list.
 * Screenshots: Zuhause, Salden, Putzplan-Podium, Einkauf, Vertrags-Radar, Onboarding.
 
-## 6. Geschäftsmodell (später)
+## 6. Geschäftsmodell
 
-Die Kernfunktionen bleiben dauerhaft kostenlos – das ist das Wachstumsversprechen.
-
-* **Nestly Plus** (ca. 1,99 €/Monat pro WG, nicht pro Person): Kassenbon-Scan,
-  mehrere WGs, Themes & App-Icons, erweiterte Statistiken, unbegrenzte Historie in der
-  gehosteten Cloud, Prioritäts-Sync.
-* **Transparente Wechsel-Angebote** im Vertrags-Radar (Strom/Internet) – klar
-  gekennzeichnet, nur auf Wunsch, nie mit Daten der Nutzer:innen bezahlt.
-* **Selbst-Hosting** bleibt kostenlos (Open Source).
+Die Kernfunktionen bleiben dauerhaft kostenlos und unbegrenzt – das ist das Wachstumsversprechen.
+Einnahmen: der Tarif-Check (gekennzeichnete Partnerlinks bei kündbaren Verträgen, eingebaut),
+später Nestly Plus pro WG, optional Angebote für Coliving-Betreiber. Selbst-Hosting bleibt
+kostenlos (Open Source). Preise, Zahlen und Zeitplan: **[GELD_PLAN.md](GELD_PLAN.md)**.
 
 ## 7. Erfolgsmessung
 

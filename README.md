@@ -7,7 +7,7 @@
 **Die App für eure WG.** Geld fair teilen, Putzplan mit Rotation, Einkaufslisten, Verträge
 mit Kündigungsfristen, Fixkosten und Kalender – endlich an einem Ort.
 
-Kostenlos · Keine Werbung · Keine Tracker · Offline-fähig · Deutsch & English
+Kostenlos · Keine Werbebanner · Keine Tracker · Offline-fähig · Deutsch & English
 
 <br />
 
@@ -39,6 +39,7 @@ Kostenlos · Keine Werbung · Keine Tracker · Offline-fähig · Deutsch & Engli
 | 📲 **Wie eine native App** | Installierbar, offline, App-Icon-Badge mit offenen Aufgaben, Teilen-Ziel (Zutatenliste aus einer Rezept-App → Einkaufsliste), Haptik, Dark Mode |
 
 Mehr zur Produktidee, Zielgruppe, Positionierung und Roadmap: **[docs/CONCEPT.md](docs/CONCEPT.md)**.
+Wie Nestly Geld verdient und an den Start geht: **[docs/GELD_PLAN.md](docs/GELD_PLAN.md)** · **[docs/LAUNCH.md](docs/LAUNCH.md)**.
 
 ## Schnellstart
 
@@ -90,6 +91,7 @@ liegt eine `fly.toml` bei.
 | `NESTLY_SERVER_URL` *(Build)* | – | Sync-Server, den eine statisch gehostete App verwenden soll |
 | `NESTLY_OFFERS` *(Build)* | – | Tarif-Check: JSON mit Partnerlinks je Vertragsart, siehe [docs/offers.example.json](docs/offers.example.json) |
 | `NESTLY_OPERATOR_NAME`, `_ADDRESS`, `_EMAIL` *(Build)* | – | Betreiberangaben; erst damit entstehen `impressum.html` und `datenschutz.html` (optional `NESTLY_OPERATOR_PHONE`, `NESTLY_LEGAL_HOSTING`) |
+| `NESTLY_TWA_PACKAGE`, `NESTLY_TWA_SHA256` *(Build)* | – | Android-Paketname und Zertifikats-Fingerabdrücke → `.well-known/assetlinks.json` für die Play-Store-App |
 
 **Nur die App, ohne Server** (z. B. GitHub Pages): Die App funktioniert dann vollständig
 offline auf einem Gerät; Einladungen und Sync lassen sich später in der App mit einem
@@ -118,7 +120,8 @@ Offline-first: Jedes Gerät hat alle Daten seiner WG lokal (IndexedDB) und gleic
 
 ## Datenschutz
 
-Keine Werbung, keine Tracker, keine externen Schriftarten oder CDNs. Eure Daten liegen auf
+Keine Werbebanner, keine Tracker, keine externen Schriftarten oder CDNs. Der optionale Tarif-Check
+zeigt bei kündbaren Verträgen gekennzeichnete Partnerlinks, ohne Daten zu übertragen, und ist abschaltbar. Eure Daten liegen auf
 euren Geräten und – wenn ihr synchronisiert – auf eurem Sync-Server. Kein Account mit
 E-Mail oder Passwort: Geräte authentifizieren sich mit einem zufälligen Token, der Server
 speichert nur dessen Hash. Backup-Export als JSON jederzeit in den Einstellungen.
