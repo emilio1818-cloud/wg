@@ -37,6 +37,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           # Same build settings as the Pages deploy (repository variables, see docs/LAUNCH.md).
           build-args: |
+            NESTLY_SITE_URL=${{ vars.NESTLY_SITE_URL }}
+            NESTLY_TIP_URL=${{ vars.NESTLY_TIP_URL }}
             NESTLY_OFFERS=${{ vars.NESTLY_OFFERS }}
             NESTLY_OPERATOR_NAME=${{ vars.NESTLY_OPERATOR_NAME }}
             NESTLY_OPERATOR_ADDRESS=${{ vars.NESTLY_OPERATOR_ADDRESS }}

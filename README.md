@@ -36,6 +36,7 @@ Kostenlos · Keine Werbebanner · Keine Tracker · Offline-fähig · Deutsch & E
 | 📶 **WLAN** | QR-Code für Gäste |
 | 👋 **Einladen** | Code, Link, QR oder WhatsApp – ohne E-Mail, ohne Passwort; Platzhalter-Profile für alle, die noch keine App haben |
 | 🔔 **Benachrichtigungen** | Web Push, wenn Mitbewohnis etwas eintragen, und morgens „Heute dran: Bad putzen“ inkl. Fristwarnungen |
+| 📝 **Kündigungs-Vorlagen** | Kostenlose Seiten unter `/kuendigen/` (Strom, Gas, Internet, Handy, Versicherung, Fitnessstudio): Schreiben ausfüllen, kopieren, mailen – mit Fristen und Sonderkündigungsrechten |
 | 📲 **Wie eine native App** | Installierbar, offline, App-Icon-Badge mit offenen Aufgaben, Teilen-Ziel (Zutatenliste aus einer Rezept-App → Einkaufsliste), Haptik, Dark Mode |
 
 Mehr zur Produktidee, Zielgruppe, Positionierung und Roadmap: **[docs/CONCEPT.md](docs/CONCEPT.md)**.
@@ -88,6 +89,7 @@ liegt eine `fly.toml` bei.
 | `REMINDERS` | an | `0` schaltet die tägliche Push-Erinnerung (Putzplan, Kündigungsfristen) ab |
 | `PUSH_ALLOW_ANY_HOST` | – | `1` erlaubt Push-Endpunkte außerhalb der bekannten Push-Dienste (FCM, Mozilla, Apple, Microsoft) |
 | `ADMIN_TOKEN` | – | Schaltet `GET /api/admin/stats` frei: anonyme Kennzahlen (WGs, aktive WGs, Geräte, Verträge je Kategorie) für diesen Bearer-Token |
+| *(Build)* | | Website-Einstellungen (Impressum, Partnerlinks, Trinkgeld-Link, Sitemap-Adresse …) stehen in [`site.config.json`](site.config.json); die folgenden `NESTLY_*`-Variablen überschreiben sie |
 | `NESTLY_SERVER_URL` *(Build)* | – | Sync-Server, den eine statisch gehostete App verwenden soll |
 | `NESTLY_OFFERS` *(Build)* | – | Tarif-Check: JSON mit Partnerlinks je Vertragsart, siehe [docs/offers.example.json](docs/offers.example.json) |
 | `NESTLY_OPERATOR_NAME`, `_ADDRESS`, `_EMAIL` *(Build)* | – | Betreiberangaben; erst damit entstehen `impressum.html` und `datenschutz.html` (optional `NESTLY_OPERATOR_PHONE`, `NESTLY_LEGAL_HOSTING`) |

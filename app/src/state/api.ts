@@ -15,7 +15,7 @@ export class ApiError extends Error {
 
 declare global {
   interface Window {
-    NESTLY_CONFIG?: { serverUrl?: string; offers?: Record<string, string>; legal?: boolean };
+    NESTLY_CONFIG?: { serverUrl?: string; offers?: Record<string, string>; legal?: boolean; tipUrl?: string };
   }
 }
 

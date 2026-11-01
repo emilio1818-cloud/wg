@@ -28,9 +28,10 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin || url.pathname.includes('/api/')) return;
 
   // Pages: network first so updates arrive quickly, cached copy when offline. Only the
-  // app itself is stored as the shell; standalone pages (imprint, privacy policy) are not.
+  // app itself is stored as the shell; standalone pages (imprint, Kündigungs-Vorlagen) are not.
   if (req.mode === 'navigate') {
-    const shell = /\/(index\.html)?$/.test(url.pathname);
+    const scope = new URL(self.registration.scope).pathname;
+    const shell = url.pathname === scope || url.pathname === scope + 'index.html';
     event.respondWith(
       fetch(req)
         .then((res) => {

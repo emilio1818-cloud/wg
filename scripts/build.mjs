@@ -6,25 +6,15 @@
  *   3. writes index.html with module preloads, config.js and a versioned service worker.
  *
  * Usage: node scripts/build.mjs [--watch]
- * Env (all optional):
- *   NESTLY_SERVER_URL        default sync server baked into config.js
- *   NESTLY_OFFERS            JSON object: contract category → https partner link for the
- *                            "Tarif-Check" (see docs/offers.example.json)
- *   NESTLY_OPERATOR_NAME     operator of the hosted service – together with ADDRESS and
- *   NESTLY_OPERATOR_ADDRESS  EMAIL this renders impressum.html and datenschutz.html from
- *   NESTLY_OPERATOR_EMAIL    app/legal/ and links them in the settings
- *   NESTLY_OPERATOR_PHONE    optional phone number for the imprint
- *   NESTLY_LEGAL_HOSTING     optional hosting provider (name and address) for the privacy policy
- *   NESTLY_TWA_PACKAGE       Android package name of the Play Store app (Trusted Web Activity) –
- *   NESTLY_TWA_SHA256        with the signing certificate fingerprint(s), comma-separated, this
- *                            writes .well-known/assetlinks.json so the app opens without a URL bar
+ * Settings (sync server, imprint, partner links, …) come from site.config.json and NESTLY_*
+ * environment variables, see scripts/site.mjs and docs/LAUNCH.md.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sanitizeOfferLinks } from '../core/src/offers.ts';
+import { loadSettings, writeSite } from './site.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const app = path.join(root, 'app');
@@ -56,75 +46,12 @@ function walk(dir, base = dir) {
   return out;
 }
 
-/** Partner links for the Tarif-Check; invalid JSON fails the build instead of silently shipping without. */
-function offerLinks() {
-  const raw = process.env.NESTLY_OFFERS?.trim();
-  if (!raw) return {};
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    console.error(`✖ NESTLY_OFFERS is not valid JSON: ${err.message}`);
-    process.exit(1);
-  }
-  const links = sanitizeOfferLinks(parsed);
-  const dropped = Object.keys(parsed ?? {}).filter((k) => !(k in links));
-  if (dropped.length) console.warn(`⚠ NESTLY_OFFERS: ignored ${dropped.join(', ')} (unknown category or not an https link)`);
-  return links;
-}
-
-const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
-/**
- * Renders the imprint and privacy policy from app/legal/ with the operator's details.
- * Without name, address and e-mail nothing is written: a placeholder imprint must never go live.
- * Template syntax: {{key}} (HTML-escaped), <!--IF:flag-->…<!--END:flag--> blocks.
- */
-function renderLegal(hasOffers) {
-  const env = process.env;
-  const name = env.NESTLY_OPERATOR_NAME?.trim();
-  const address = env.NESTLY_OPERATOR_ADDRESS?.trim();
-  const email = env.NESTLY_OPERATOR_EMAIL?.trim();
-  if (!name || !address || !email) return false;
-  const lines = (s) => s.split(/\r?\n|\s*\|\s*/).map((l) => escapeHtml(l.trim())).filter(Boolean).join('<br />');
-  const phone = env.NESTLY_OPERATOR_PHONE?.trim();
-  const hosting = env.NESTLY_LEGAL_HOSTING?.trim();
-  const values = { name: escapeHtml(name), address: lines(address), email: escapeHtml(email), phone: phone ? escapeHtml(phone) : '', hosting: hosting ? lines(hosting) : '' };
-  const flags = { phone: !!phone, hosting: !!hosting, noHosting: !hosting, offers: hasOffers };
-  for (const file of ['impressum.html', 'datenschutz.html']) {
-    let html = fs.readFileSync(path.join(app, 'legal', file), 'utf8');
-    html = html.replace(/<!--IF:(\w+)-->([\s\S]*?)<!--END:\1-->/g, (_, flag, body) => (flags[flag] ? body : ''));
-    html = html.replace(/\{\{(\w+)\}\}/g, (_, key) => values[key] ?? '');
-    fs.writeFileSync(path.join(dist, file), html);
-  }
-  return true;
-}
-
-/** Digital Asset Links for the Play Store app (Trusted Web Activity), if configured. */
-function writeAssetLinks() {
-  const pkg = process.env.NESTLY_TWA_PACKAGE?.trim();
-  const fingerprints = (process.env.NESTLY_TWA_SHA256 ?? '').split(',').map((f) => f.trim().toUpperCase()).filter(Boolean);
-  if (!pkg || !fingerprints.length) return;
-  const bad = fingerprints.filter((f) => !/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f));
-  if (!/^[a-zA-Z][\w]*(\.[a-zA-Z][\w]*)+$/.test(pkg) || bad.length) {
-    console.error(`✖ NESTLY_TWA_PACKAGE/NESTLY_TWA_SHA256 invalid (${bad.length ? 'fingerprint ' + bad.join(', ') : 'package ' + pkg})`);
-    process.exit(1);
-  }
-  const links = [{ relation: ['delegate_permission/common.handle_all_urls'], target: { namespace: 'android_app', package_name: pkg, sha256_cert_fingerprints: fingerprints } }];
-  fs.mkdirSync(path.join(dist, '.well-known'), { recursive: true });
-  fs.writeFileSync(path.join(dist, '.well-known', 'assetlinks.json'), JSON.stringify(links, null, 2) + '\n');
-}
-
 /** Copies assets and regenerates index.html, config.js and sw.js. */
 function finalize() {
   copyDir(path.join(app, 'public'), dist);
   fs.copyFileSync(path.join(app, 'src', 'styles.css'), path.join(dist, 'styles.css'));
-  const serverUrl = process.env.NESTLY_SERVER_URL || '';
-  const offers = offerLinks();
-  const legal = renderLegal(Object.keys(offers).length > 0);
-  const config = { serverUrl: serverUrl || undefined, offers: Object.keys(offers).length ? offers : undefined, legal: legal || undefined };
+  const { config, headExtra } = writeSite(app, dist, loadSettings(root));
   fs.writeFileSync(path.join(dist, 'config.js'), `window.NESTLY_CONFIG = ${JSON.stringify(config)};\n`);
-  writeAssetLinks();
 
   const files = walk(dist).filter((f) => f !== 'sw.js' && f !== 'index.html' && !f.endsWith('.map'));
   const hash = createHash('sha256');
@@ -137,10 +64,11 @@ function finalize() {
   const html = fs
     .readFileSync(path.join(app, 'index.html'), 'utf8')
     .replaceAll('__VERSION__', version)
-    .replace('<!--MODULEPRELOAD-->', preload);
+    .replace('<!--MODULEPRELOAD-->', preload)
+    .replace('</head>', headExtra ? `  ${headExtra}\n  </head>` : '</head>');
   fs.writeFileSync(path.join(dist, 'index.html'), html);
 
-  const precache = ['./', 'index.html', ...files.filter((f) => !f.startsWith('icons/og-') && !f.startsWith('.well-known/') && f !== '404.html' && f !== '.nojekyll')];
+  const precache = ['./', 'index.html', ...files.filter((f) => !f.startsWith('icons/og-') && !/^(\.well-known|kuendigen)\//.test(f) && !['404.html', '.nojekyll', 'sitemap.xml', 'robots.txt'].includes(f))];
   const sw = fs.readFileSync(path.join(app, 'sw.js'), 'utf8').replaceAll('__VERSION__', version).replace('__PRECACHE__', JSON.stringify(precache, null, 2));
   fs.writeFileSync(path.join(dist, 'sw.js'), sw);
   fs.writeFileSync(path.join(dist, '.nojekyll'), '');
@@ -159,7 +87,7 @@ if (!watch) {
   const { version, modules } = finalize();
   console.log(`✔ Built app/dist (${modules} modules, version ${version}) in ${Date.now() - started} ms`);
   if (!fs.existsSync(path.join(dist, 'impressum.html'))) {
-    console.log('ℹ No imprint/privacy policy: set NESTLY_OPERATOR_NAME, _ADDRESS and _EMAIL before publishing (docs/LAUNCH.md)');
+    console.log('ℹ No imprint/privacy policy yet: fill "operator" in site.config.json before earning money (docs/LAUNCH.md)');
   }
 } else {
   fs.mkdirSync(dist, { recursive: true });
@@ -184,6 +112,7 @@ if (!watch) {
   fs.watch(path.join(app, 'public'), { recursive: true }, refresh);
   fs.watch(path.join(app, 'index.html'), refresh);
   fs.watch(path.join(app, 'legal'), refresh);
+  fs.watch(path.join(app, 'tools'), refresh);
   process.on('SIGINT', () => {
     tsc.kill();
     process.exit(0);

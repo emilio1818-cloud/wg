@@ -8,13 +8,14 @@
 
 FROM node:22-alpine AS build
 WORKDIR /src
-COPY package.json tsconfig.base.json ./
+COPY package.json tsconfig.base.json site.config.json ./
 RUN npm install --no-audit --no-fund --ignore-scripts typescript@^6
 COPY core ./core
 COPY app ./app
 COPY scripts ./scripts
-# Build-time settings, see scripts/build.mjs and docs/LAUNCH.md.
-ARG NESTLY_SERVER_URL= NESTLY_OFFERS= NESTLY_OPERATOR_NAME= NESTLY_OPERATOR_ADDRESS= NESTLY_OPERATOR_EMAIL= NESTLY_OPERATOR_PHONE= NESTLY_LEGAL_HOSTING= NESTLY_TWA_PACKAGE= NESTLY_TWA_SHA256=
+# Settings come from site.config.json; these build arguments override it (scripts/site.mjs).
+# NESTLY_SYNC=1: this image serves the app together with its sync server.
+ARG NESTLY_SYNC=1 NESTLY_SITE_URL= NESTLY_SERVER_URL= NESTLY_OFFERS= NESTLY_OPERATOR_NAME= NESTLY_OPERATOR_ADDRESS= NESTLY_OPERATOR_EMAIL= NESTLY_OPERATOR_PHONE= NESTLY_LEGAL_HOSTING= NESTLY_TIP_URL= NESTLY_GOOGLE_SITE_VERIFICATION= NESTLY_TWA_PACKAGE= NESTLY_TWA_SHA256=
 RUN node scripts/build.mjs
 
 FROM node:22-alpine

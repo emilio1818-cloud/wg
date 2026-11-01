@@ -35,7 +35,8 @@
           <strong>Kurz gesagt</strong>
           <ul>
             <li>Kein Konto mit E-Mail oder Passwort, keine Tracker, keine Analyse-Tools, keine Werbebanner.</li>
-            <li>Eure Einträge liegen auf euren Geräten und – damit eure WG synchron bleibt – auf unserem Sync-Server.</li>
+            <!--IF:sync--><li>Eure Einträge liegen auf euren Geräten und – damit eure WG synchron bleibt – auf unserem Sync-Server.</li><!--END:sync-->
+            <!--IF:nosync--><li>Eure Einträge bleiben auf eurem Gerät; wir betreiben keinen Server, der sie speichert.</li><!--END:nosync-->
             <li>Wir verkaufen keine Daten und geben sie nicht an Dritte weiter.</li>
           </ul>
         </div>
@@ -51,6 +52,19 @@
           Die Daten werden gelöscht, wenn du die WG in den Einstellungen verlässt oder die Website-Daten bzw. die App löschst.
         </p>
 
+        <!--IF:hosting-->
+        <h2>Hosting</h2>
+        <p>
+          Diese Website und die App werden bei folgendem Anbieter gehostet:<br />{{hosting}}
+        </p>
+        <p>
+          Beim Aufruf verarbeitet der Anbieter technisch notwendige Verbindungsdaten wie IP-Adresse, Zeitpunkt und
+          aufgerufene Seite, um die Seiten auszuliefern und vor Missbrauch zu schützen (Art. 6 Abs. 1 lit. f DSGVO).
+          Hat der Anbieter seinen Sitz außerhalb der EU, können diese Daten dorthin übermittelt werden.
+        </p>
+        <!--END:hosting-->
+
+        <!--IF:sync-->
         <h2>Synchronisation über unseren Server</h2>
         <p>
           Wenn ihr eine WG gemeinsam nutzt, speichert unser Sync-Server die Einträge eurer WG, damit sie auf allen
@@ -65,12 +79,6 @@
           Die Daten bleiben gespeichert, solange eure WG besteht. Auf Anfrage an die oben genannte E-Mail-Adresse
           löschen wir eure WG vollständig vom Server.
         </p>
-        <!--IF:hosting-->
-        <p>
-          Der Server wird bei folgendem Anbieter betrieben, der die Daten in unserem Auftrag verarbeitet
-          (Art. 28 DSGVO):<br />{{hosting}}
-        </p>
-        <!--END:hosting-->
 
         <h2>Server-Zugriffe und IP-Adresse</h2>
         <p>
@@ -91,17 +99,32 @@
           auch außerhalb der EU verarbeiten. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die
           du jederzeit in den Einstellungen oder im Browser widerrufen kannst.
         </p>
+        <!--END:sync-->
+
+        <h2>Kündigungs-Vorlagen</h2>
+        <p>
+          Was du auf den Seiten unter „Kündigungs-Vorlagen“ einträgst, verarbeitet dein Browser. Es wird weder an uns
+          übertragen noch gespeichert.
+        </p>
 
         <!--IF:offers-->
-        <h2>Partnerlinks im Tarif-Check</h2>
+        <h2>Partnerlinks zum Tarifvergleich</h2>
         <p>
-          Bei Verträgen, die gerade kündbar sind, kann Nestly einen als „Anzeige“ gekennzeichneten Link zu einem
-          Vergleichsportal anzeigen. Erst wenn du darauf tippst, öffnet sich die Website des Partners. Wir übermitteln
+          Bei Verträgen, die gerade kündbar sind, und auf den Kündigungs-Vorlagen zeigt Nestly als „Anzeige“
+          gekennzeichnete Links zu einem Vergleichsportal. Erst wenn du darauf tippst, öffnet sich die Website des Partners. Wir übermitteln
           dabei keine Daten aus eurer WG; der Link enthält nur unsere Partnerkennung. Kommt über den Link ein Vertrag
           zustande, erhalten wir unter Umständen eine Provision – für dich ändert sich der Preis nicht. Auf der
-          Partner-Website gilt dessen Datenschutzerklärung. Du kannst die Hinweise in den Einstellungen abschalten.
+          Partner-Website gilt dessen Datenschutzerklärung. In der App kannst du die Hinweise in den Einstellungen abschalten.
         </p>
         <!--END:offers-->
+
+        <!--IF:tip-->
+        <h2>Unterstützen</h2>
+        <p>
+          Der Link „Nestly unterstützen“ führt zu {{tipHost}}. Wenn du dort etwas gibst, gelten die Bestimmungen dieses
+          Anbieters; wir erhalten nur die Angaben, die der Anbieter für die Zahlung an uns weitergibt.
+        </p>
+        <!--END:tip-->
 
         <h2>Links zu anderen Diensten</h2>
         <p>

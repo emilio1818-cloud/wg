@@ -828,6 +828,8 @@ export const en: Dict = {
   'settings.offersHint': 'Labelled partner links to compare tariffs when a contract can be cancelled. No data is shared.',
   'settings.privacyTextOffers': 'Nestly shows no ad banners and uses no trackers. Your data lives on your devices and – if you sync – on your sync server. When a contract can be cancelled, Nestly may show labelled partner links; that is how the app pays for itself.',
   'settings.imprint': 'Imprint',
+  'settings.tip': 'Support Nestly ☕',
+  'settings.tipHint': 'Nestly is free. If it helps your flatshare, a coffee is very welcome.',
   'settings.privacyPolicy': 'Privacy policy',
   'settings.install': 'Install app',
   'settings.exitDemo': 'Exit demo',

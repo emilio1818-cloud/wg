@@ -16,7 +16,7 @@ import { openInvite } from './members.tsx';
 import { canInstall } from '../state/install.ts';
 import { disableNotifications, enableNotifications, notificationsEnabled } from '../state/push.ts';
 import { openInstall } from '../components/install.tsx';
-import { legalPagesAvailable, offersConfigured } from '../state/offers.ts';
+import { legalPagesAvailable, offersConfigured, tipUrl } from '../state/offers.ts';
 
 void Fragment;
 
@@ -217,6 +217,11 @@ export function Settings() {
           {offersConfigured() ? t('settings.privacyTextOffers') : t('settings.privacyText')}
         </p>
       </div>
+      {tipUrl() ? (
+        <div class="list mt-12">
+          <Row lead={<Tile icon="heart" color="var(--pink)" />} title={t('settings.tip')} sub={t('settings.tipHint')} onClick={() => window.open(tipUrl()!, '_blank', 'noopener')} end={<Icon name="external" size={16} class="faint" />} />
+        </div>
+      ) : null}
       {legalPagesAvailable() ? (
         <div class="list mt-12">
           <Row lead={<Tile icon="shield" color="var(--blue)" />} title={t('settings.privacyPolicy')} onClick={() => window.open('datenschutz.html', '_blank', 'noopener')} end={<Icon name="external" size={16} class="faint" />} />

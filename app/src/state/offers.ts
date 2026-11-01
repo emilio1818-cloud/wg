@@ -23,6 +23,12 @@ export function offerLink(category: ContractCategory): string | null {
   return offerLinks()[category] ?? null;
 }
 
+/** "Nestly unterstützen" link (https only), or null. */
+export function tipUrl(): string | null {
+  const url = window.NESTLY_CONFIG?.tipUrl;
+  return typeof url === 'string' && url.startsWith('https://') ? url : null;
+}
+
 /** True when imprint and privacy policy were rendered into this build. */
 export function legalPagesAvailable(): boolean {
   return window.NESTLY_CONFIG?.legal === true;

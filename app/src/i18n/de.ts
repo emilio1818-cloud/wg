@@ -826,6 +826,8 @@ export const de = {
   'settings.offersHint': 'Gekennzeichnete Partnerlinks zum Tarifvergleich, wenn ein Vertrag kündbar ist. Ohne Datenweitergabe.',
   'settings.privacyTextOffers': 'Nestly zeigt keine Werbebanner und nutzt keine Tracker. Eure Daten liegen auf euren Geräten und – wenn ihr synchronisiert – auf eurem Sync-Server. Bei kündbaren Verträgen kann Nestly gekennzeichnete Partnerlinks zeigen; davon lebt die App.',
   'settings.imprint': 'Impressum',
+  'settings.tip': 'Nestly unterstützen ☕',
+  'settings.tipHint': 'Nestly ist kostenlos. Wenn es eurer WG hilft, freue ich mich über einen Kaffee.',
   'settings.privacyPolicy': 'Datenschutzerklärung',
   'settings.install': 'App installieren',
   'settings.exitDemo': 'Demo beenden',

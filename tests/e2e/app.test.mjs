@@ -413,4 +413,24 @@ describe('Nestly end-to-end', () => {
     assert.deepEqual(d.errors, []);
     await d.ctx.close();
   });
+  it('serves the Kündigungs-Vorlagen: letter generator without partner links when there is no imprint', async () => {
+    const d = await device();
+    const { page } = d;
+    await page.goto(base + '/kuendigen/');
+    await page.getByRole('link', { name: /Strom/ }).first().click();
+    await page.getByRole('heading', { name: 'Stromvertrag kündigen: Vorlage zum Ausfüllen' }).waitFor();
+    await page.getByLabel('Dein Name').fill('Lena Beispiel');
+    await page.getByLabel('Anbieter').fill('Stadtwerke Berlin');
+    await page.getByLabel('Kundennummer').fill('4711');
+    const letter = page.locator('#letter');
+    await letter.getByText('Kündigung meines Vertrags: Stromliefervertrag').waitFor();
+    assert.match(await letter.innerText(), /^Lena Beispiel[\s\S]*Kundennummer: 4711[\s\S]*nächstmöglichen Zeitpunkt/);
+    // The default build has no operator details: no partner link, no imprint links.
+    assert.equal(await page.locator('.offer').count(), 0);
+    assert.equal(await page.getByRole('link', { name: 'Impressum' }).count(), 0);
+    const sitemap = await (await fetch(base + '/sitemap.xml')).text();
+    assert.match(sitemap, /kuendigen\/strom\//);
+    assert.deepEqual(d.errors, []);
+    await d.ctx.close();
+  });
 });

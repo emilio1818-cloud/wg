@@ -1,8 +1,31 @@
 # Launch-Checkliste
 
-Technische Schritte, um Nestly öffentlich zu betreiben und in den Play Store zu bringen. Das
-Warum steht in [GELD_PLAN.md](GELD_PLAN.md). Alles, was hier „Variable“ heißt, wird einmal in
-GitHub gesetzt; danach baut und veröffentlicht jeder Push auf `main` automatisch.
+Technische Schritte, um Nestly öffentlich zu betreiben. Das Warum steht in
+[GELD_PLAN.md](GELD_PLAN.md). Jeder Push auf `main` baut und veröffentlicht automatisch.
+
+## 0. Minimalstart: nur GitHub Pages (0 €)
+
+Das ist der Weg aus dem Minimalplan – kein Server, kein Store.
+
+1. Änderungen nach `main` mergen. Der Workflow *Deploy web app to GitHub Pages* veröffentlicht
+   App und Vorlagen unter `https://emilio1818-cloud.github.io/wg/` (App) und `…/wg/kuendigen/`.
+2. Einstellungen in [`site.config.json`](../site.config.json) eintragen (macht Claude, du schickst
+   die Daten):
+
+   | Feld | Wirkung |
+   | --- | --- |
+   | `operator.name`, `.address`, `.email` (`.phone` optional) | erzeugt Impressum und Datenschutzerklärung; erst damit erscheinen Partnerlinks |
+   | `offers` | Partnerlinks je Vertragsart: `electricity`, `gas`, `internet`, `phone`, `liability`, `insurance` (nur `https://`) |
+   | `tipUrl` | Trinkgeld-Link (z. B. Ko-fi) in der App und auf den Vorlagen |
+   | `googleSiteVerification` | Bestätigungscode der Google Search Console (nur der Inhalt des `content`-Attributs) |
+   | `siteUrl` | öffentliche Adresse, für Sitemap und Canonical-Links |
+   | `hosting` | Hoster in der Datenschutzerklärung (Standard: GitHub Pages) |
+
+3. Prüfen: `…/wg/impressum.html`, `…/wg/datenschutz.html`, `…/wg/kuendigen/strom/`.
+4. Search Console: Eigenschaft „URL-Präfix“ mit `https://emilio1818-cloud.github.io/wg/`, Bestätigung
+   per HTML-Tag (Code an Claude), danach `sitemap.xml` einreichen.
+
+Alles ab hier ist der Ausbau mit eigenem Server und Play Store.
 
 ## 1. Domain und Server
 
@@ -35,13 +58,17 @@ Ab jetzt ist die Domain die eine echte Adresse der App. Die GitHub-Pages-Kopie u
 `emilio1818-cloud.github.io/wg` sollte dann mit der Variable `DEPLOY_PAGES=false` abgeschaltet
 werden, sonst gibt es zwei Kopien mit getrennten Daten.
 
-## 2. Variablen in GitHub
+## 2. Variablen in GitHub (überschreiben `site.config.json`)
 
-*Repository → Settings → Secrets and variables → Actions → Variables → New repository variable.*
-Sie fließen in den Docker-Build (`docker.yml`) und in GitHub Pages (`pages.yml`).
+Normalerweise reicht `site.config.json`. Variablen braucht es nur, wenn ein Build andere Werte haben
+soll – z. B. der Docker-Build für den eigenen Server (`NESTLY_SITE_URL`, `NESTLY_LEGAL_HOSTING`).
+*Repository → Settings → Secrets and variables → Actions → Variables.* Sie fließen in den
+Docker-Build (`docker.yml`) und in GitHub Pages (`pages.yml`); leere Variablen zählen als nicht gesetzt.
 
 | Variable | Beispiel | Wirkung |
 | --- | --- | --- |
+| `NESTLY_SITE_URL` | `https://app.nestly-wg.de/` | öffentliche Adresse (Sitemap, Canonical) |
+| `NESTLY_TIP_URL` | `https://ko-fi.com/…` | Trinkgeld-Link |
 | `NESTLY_OPERATOR_NAME` | `Emil Beispiel` | Impressum und Datenschutzerklärung werden erst mit Name, |
 | `NESTLY_OPERATOR_ADDRESS` | `Musterstr. 1 \| 12345 Musterstadt` | Adresse (Zeilen mit `\|` oder Zeilenumbruch trennen) |
 | `NESTLY_OPERATOR_EMAIL` | `hallo@nestly-wg.de` | und E-Mail gebaut und in den Einstellungen verlinkt |

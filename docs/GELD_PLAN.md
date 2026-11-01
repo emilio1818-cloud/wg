@@ -1,235 +1,91 @@
-# Nestly – Plan zum Geldverdienen
+# Nestly – der Minimalplan
 
-> Stand: 1. November 2026. Ziel: mit minimalen Ausgaben Einnahmen erzielen, und Claude erledigt
-> so viel wie möglich. Kennzeichnung: **[belegt]** mit Quelle · **[Annahme]** begründete
-> Schätzung · **[offen]** muss vor dem Schritt geprüft werden.
+> Stand: 1. November 2026. Ziel: mit möglichst wenig Aufwand und ohne laufende Kosten ein paar
+> Euro verdienen; Claude macht fast alles. Kennzeichnung: **[belegt]** mit Quelle ·
+> **[Annahme]** begründete Schätzung · **[offen]** vor dem Schritt prüfen.
 
-## Kurzfassung
+## In einem Satz
 
-1. **Die App bleibt kostenlos und unbegrenzt.** Das ist der Hebel gegen Splitwise (Gratis-Version
-   mit Tageslimit und Werbung) und Flatastic (Premium pro Person). Eine WG-App wächst über
-   Einladungen – jede Bezahlschranke im Kern bremst genau das.
-2. **Geld kommt zuerst aus dem Tarif-Check** (schon eingebaut): Wenn ein Strom-, Gas-, Internet-,
-   Handy- oder Versicherungsvertrag gerade kündbar ist, zeigt Nestly einen gekennzeichneten
-   Partnerlink zum Tarifvergleich. Kein Bezahlsystem, keine Store-Gebühr, keine Datenweitergabe.
-3. **Nestly Plus kommt erst, wenn es Nutzer gibt** (Ziel: ab ca. 300 wöchentlich aktiven WGs) –
-   pro WG statt pro Person, und die App teilt den Preis automatisch als Fixkosten auf.
-4. **Start mit Web + Android**, iPhone zunächst als installierbare Web-App. Der App Store (99 €/Jahr)
-   lohnt sich erst mit Traktion.
-5. **Kosten im ersten Jahr: ca. 100–200 €.** Realistisch sind am Anfang eher Hunderte als
-   Tausende Euro im Monat; der Plan ist darauf ausgelegt, dass sich das mit Nutzerzahl skaliert,
-   nicht mit deiner Arbeitszeit.
+Kostenlose Kündigungs-Vorlagen und die App laufen auf GitHub Pages (0 €). Wer dort einen Vertrag
+kündigen will, bekommt einen gekennzeichneten Link zum Tarifvergleich – kommt ein Wechsel
+zustande, gibt es Provision. Dazu ein freiwilliger Trinkgeld-Link.
 
-## Ehrliche Einschätzung zum „Zeitfenster“
+## Warum genau das
 
-Richtig ist: Apps zu bauen ist 2026 billig geworden. Genau deshalb sind die Stores voll, und
-Google hat für neue private Entwicklerkonten eine Pflicht-Testphase eingeführt (siehe unten).
-Der Engpass ist nicht mehr der Code, sondern **Vertrieb und Vertrauen**. Nestly hat hier zwei
-echte Vorteile: Die App ist fertig und durchgetestet (166 automatische Tests), und sie besetzt
-eine Lücke, die die bekannten Apps nicht abdecken – Verträge, Fristen und Fixkosten zusammen mit
-Putzplan und Geld. Das Fenster ist also weniger „schnell Geld mit irgendeiner App“, sondern
-„früh mit einer guten App in einer Nische sein, in der die Etablierten alt oder nervig sind“.
+- **Kein Store:** spart 25 $, den Pflichttest mit 12 Testern über 14 Tage und mehrere Formulare.
+- **Kein Server:** 0 € im Monat. Die Vorlagen und das Vertrags-Radar der App funktionieren ohne.
+- **Kein Bezahlsystem:** Die Provision zahlt der Partner; keine Abo-Technik, keine Store-Gebühr.
+- **Besucher kommen über Google,** nicht über deine Zeit.
+- **Der Moment passt:** Wer „Stromvertrag kündigen“ sucht, will oft wechseln. CHECK24 zahlt laut
+  Awin-Profil ca. 16,50 € pro Online-Stromwechsel und 20–55 € pro DSL-Abschluss
+  **[belegt, Seite undatiert – im Partnerportal prüfen]** ([Awin](https://ui.awin.com/merchant-profile/9364)).
+- **Ich kann alles bauen, ändern und veröffentlichen.** Alle Einstellungen stehen in
+  [`site.config.json`](../site.config.json); du schickst mir die Daten einfach im Chat.
 
-## Geldquellen
+**Schon fertig:** Vorlagen-Seiten für Strom, Gas, Internet, Handy, Haftpflicht/Hausrat und
+Fitnessstudio mit Generator, Fristen und FAQ (`/kuendigen/`), Sitemap, Tarif-Check in der App,
+Trinkgeld-Link, Impressum und Datenschutzerklärung aus deinen Angaben. Partnerlinks erscheinen
+erst, wenn ein Impressum existiert – vorher bleibt alles werbefrei und nichtkommerziell.
 
-### 1. Tarif-Check – ab sofort
+## Was du machst – einmalig, ca. 1 Stunde
 
-**Was es ist:** Eine Karte im Vertrag („Frist naht: Tarife vergleichen“, „Jederzeit wechselbar“,
-„Anschlussvertrag finden“) und ein Tipp im Kündigungsschreiben („Erst wechseln, dann kündigen“).
-Erscheint nur, wenn man wirklich handeln kann, nie während einer laufenden Mindestlaufzeit.
-Gekennzeichnet als „Anzeige“, mit einem Tipp ausblendbar, in den Einstellungen abschaltbar.
-Die Links kommen aus der Build-Variable `NESTLY_OFFERS`; ohne sie zeigt die App nichts an.
+| # | Schritt | Zeit | Kosten |
+| --- | --- | --- | --- |
+| 1 | Schreib mir „PR“: Ich erstelle den Pull Request, du klickst auf *Merge*. Danach ist alles live unter `emilio1818-cloud.github.io/wg/kuendigen/`. | 2 Min. | 0 € |
+| 2 | Schick mir **Name, Adresse und E-Mail** fürs Impressum. Pflicht, sobald Partnerlinks erscheinen. | 2 Min. | 0 € (Impressums-Adresse ca. 5–15 €/Monat, falls deine Wohnadresse nicht öffentlich sein soll **[Annahme]**) |
+| 3 | **Gewerbe anmelden** (online bei deiner Gemeinde) – vor der ersten Provision. | 20 Min. | ca. 15–60 € einmalig **[Annahme]** |
+| 4 | Beim **CHECK24-Partnerprogramm** anmelden (direkt oder über Awin), als Website `…/wg/kuendigen/` angeben, Partnerlinks für Strom, Gas, DSL, Handy und Haftpflicht/Hausrat erzeugen und mir schicken. | 30 Min. | 0 € **[offen: ggf. kleine Prüfgebühr bei Awin]** |
+| 5 | *Optional:* Seite bei **Ko-fi** anlegen und mir den Link schicken. Ko-fi nimmt auf Spenden 0 %, nur PayPal/Stripe kosten Gebühren **[belegt über Drittquellen]** ([Ko-fi](https://ko-fi.com/patreon)). | 5 Min. | 0 € |
+| 6 | *Optional:* Website in der **Google Search Console** hinzufügen, mir den Bestätigungscode schicken, danach die Sitemap einreichen. Beschleunigt die Aufnahme bei Google. | 10 Min. | 0 € |
 
-**Warum das passt:** Nutzer tragen Verträge und Fristen ohnehin ein. Der Moment „Frist läuft ab“
-ist genau der Moment, in dem Vergleichsportale Provision zahlen – und der Hinweis spart den
-Nutzern echtes Geld. Partnerlinks für Strom & Co. sind keine digitalen Güter, deshalb fällt
-keine In-App-Kauf-Pflicht und keine Store-Provision an **[Annahme, nach Store-Richtlinien für
-Dienstleistungen außerhalb der App]**.
+Danach ist nichts mehr Pflicht. Wer mag, postet den Link in zwei, drei WhatsApp-Gruppen oder
+beantwortet damit Fragen auf Reddit – Texte liegen in [marketing/OUTREACH.md](marketing/OUTREACH.md).
 
-**Provision:** Laut Awin-Profil zahlt CHECK24 ca. 16,50 € pro Online-Stromwechsel, Gas gleich;
-CHECK24 selbst wirbt mit „bis zu 125 € pro Abschluss“ je nach Produkt
-**[belegt, Seite undatiert – im Partnerportal prüfen]**
-([Awin](https://ui.awin.com/merchant-profile/9364), [CHECK24 Partnerprogramm](https://www.check24.de/partner/partnerprogramm/)).
+## Was ich mache
 
-**Zu tun:** Bei einem oder mehreren Partnerprogrammen bewerben (CHECK24 direkt oder über Awin;
-weitere Vergleichsportale möglich). **[offen]** Ob App-Traffic zugelassen ist und welche
-Kennzeichnung der Partner verlangt, steht in den jeweiligen Bedingungen – bei der Bewerbung die
-App als Traffic-Quelle angeben.
+- **Sobald deine Daten da sind:** eintragen, testen, veröffentlichen.
+- **Laufend:** weitere Vorlagen-Seiten für Suchbegriffe rund um WGs (z. B. Miete in der WG aufteilen,
+  Putzplan-Vorlage, Kaution zurückfordern, Rundfunkbeitrag in der WG), Texte nach den Daten aus
+  der Search Console verbessern, Fehler beheben.
 
-**Markenversprechen:** Bisher stand überall „Keine Werbung“. Mit dem Tarif-Check stimmt das
-streng genommen nicht mehr. Ich habe die Texte deshalb auf „keine Werbebanner, keine Tracker“
-umgestellt, sobald Partnerlinks aktiv sind. Ob du den Tarif-Check überhaupt willst, ist deine
-Entscheidung – technisch reicht es, `NESTLY_OFFERS` leer zu lassen.
+## Was realistisch ist
 
-### 2. Nestly Plus – sobald es Nutzer gibt
+- **Zeit:** Google braucht Wochen bis Monate, bis neue Seiten gut gefunden werden **[Annahme]**. Eine
+  Adresse unter `github.io` hat es schwerer als eine eigene Domain, und große Kündigungsportale
+  sind starke Konkurrenz. Erste Provision eher nach 1–3 Monaten **[Annahme]**.
+- **Größenordnung [Annahme]:** 1.000 Besucher im Monat auf den Strom-/DSL-Seiten → 5–10 % klicken
+  den Vergleich → 10–20 % schließen ab → ca. 5–20 Abschlüsse × 16–55 € ≈ **80–1.000 € im Monat**.
+  Am Anfang eher **0–50 €**.
+- **Schlechtester Fall:** Google zeigt die Seiten kaum. Dann hat es dich eine Stunde und die
+  Gewerbeanmeldung gekostet.
 
-| | Preis | Begründung |
+## Kosten
+
+**Laufend 0 €.** Einmalig die Gewerbeanmeldung. Optional später eine eigene Domain
+(ca. 1–15 €/Jahr **[Annahme]**), die bei Google hilft.
+
+## Ausbau – nur wenn die Zahlen es rechtfertigen
+
+| Signal | Nächster Schritt | Kosten |
 | --- | --- | --- |
-| Monatlich | **2,99 € pro WG** | in einer 4er-WG 0,75 € pro Person – Nestly bucht es selbst als Fixkosten und teilt es auf |
-| Jährlich | **19,99 € pro WG** | passt zum Semester-Rhythmus, ca. 44 % günstiger als monatlich |
-| Gründer-WG (einmalig) | **29,99 €**, nur für die ersten 500 WGs | frühes Geld, treue Erstnutzer, Dringlichkeit ohne Tricks |
+| erste Provisionen oder ca. 1.000 Besucher im Monat | eigene Domain | ca. 1–15 €/Jahr |
+| WGs wollen die App gemeinsam nutzen (Synchronisation) | Sync-Server: kostenlos über Cloudflare (Umbau, mache ich; SQLite-Speicher ist im Gratis-Plan verfügbar **[belegt]** ([Cloudflare](https://developers.cloudflare.com/changelog/2026-01-07-durable-objects-sqlite-storage-billing)), genaue Limits **[offen]**) oder fertig vorbereitet auf einem kleinen Server für ca. 4–6 €/Monat ([LAUNCH.md](LAUNCH.md)) | 0–6 €/Monat |
+| ca. 300 aktive WGs | Play Store ([store/PLAY_STORE.md](store/PLAY_STORE.md)) und Nestly Plus: 2,99 €/Monat oder 19,99 €/Jahr pro WG | 25 $ einmalig |
 
-Zum Vergleich: Flatastic verlangt im US-App-Store 1,99 $/Monat pro Person bzw. 6,49 $/Monat oder
-34,99 $/Jahr für alle Mitbewohner; Splitwise Pro kostet ca. 4,99 $/Monat oder ca. 40 $/Jahr, die
-Gratis-Version ist auf ca. 3–5 Ausgaben pro Tag begrenzt und zeigt Werbung
-**[belegt über Store-Einträge und Drittquellen, Preise je Region verschieden]**
-([Flatastic im App Store](https://apps.apple.com/app/id840810742),
-[Splitwise im App Store](https://apps.apple.com/us/app/splitwise/id458023433),
-[Splitwise-Preise 2026](https://getfinny.app/blog/splitwise-pricing-2026)).
+## Was gegenüber dem ersten Plan rausgeflogen ist
 
-**Was in Plus kommt** (der Kern bleibt immer frei und unbegrenzt): Fotos und Belege an Ausgaben
-(kostet Serverspeicher, daher fair), Kassenbon-Scan, Nebenkosten-Assistent für die
-Jahresabrechnung, Monatsbericht als PDF, mehrere WGs, Themes und App-Icons. Diese Funktionen
-stehen auf der Roadmap und werden gebaut, wenn das Signal da ist.
-
-**Warum nicht sofort:** Ohne Nutzer bringt eine Bezahlschranke 0 €, und jede Woche, die in
-Zahlungsabwicklung fließt, fehlt beim Vertrieb. **Auslöser:** ca. 300 wöchentlich aktive WGs
-(`active.d7` im Kennzahlen-Endpunkt) oder wiederholte Nachfragen von Nutzern.
-
-**Technik und Gebühren, wenn es so weit ist:** In der Play-Store-App müssen digitale Abos über
-Google Play Billing laufen; für Web-Apps im Play Store geht das über die Digital Goods API
-**[belegt]** ([Chrome-Doku](https://developer.chrome.com/docs/android/trusted-web-activity/receive-payments-play-billing)).
-Google und Apple behalten bei Abos bzw. kleinen Entwicklern 15 % ein **[Annahme nach aktuellem
-Kenntnisstand – vor dem Start prüfen]**. Im Web erledigt ein „Merchant of Record“ (z. B. Paddle)
-die Umsatzsteuer für dich.
-
-### 3. Optional: Coliving-Anbieter und Wohnheime (B2B)
-
-Coliving-Firmen und private Wohnheime verwalten Hunderte WG-Zimmer und haben genau die Probleme,
-die Nestly löst. Ein „Haus-Modus“ für Betreiber zu z. B. 1 € pro Zimmer und Monat wäre bei
-300 Zimmern so viel wert wie rund 100 Plus-Abos **[Annahme, Preis nicht validiert]**. Das
-braucht Gespräche, die nur du führen kannst; Anschreiben und Einseiter liegen in
-[marketing/B2B_PITCH.md](marketing/B2B_PITCH.md). Lohnt sich als Versuch nebenbei, ist aber kein
-Muss für den Start.
-
-### Bewusst nicht
-
-- **Werbebanner:** zerstören das Vertrauensversprechen und bringen bei kleiner Nutzerzahl kaum etwas.
-- **Daten verkaufen:** nein.
-- **Bezahlte Werbung (Ads):** Bei 2–3 € Umsatz pro WG und Jahr ist jeder bezahlte Nutzer teurer als
-  das, was er einbringt **[Annahme]**.
-
-## Was es kostet
-
-| Posten | Kosten | Wann |
-| --- | --- | --- |
-| GitHub Pages / Repository | 0 € | läuft schon |
-| Google-Play-Entwicklerkonto | 25 $ einmalig | Woche 1 |
-| Domain (.de) | ca. 1–15 € pro Jahr **[Annahme, je nach Anbieter]** | Woche 1 |
-| Kleiner Server (z. B. Hetzner in Deutschland) | ca. 4–6 € pro Monat **[Annahme, aktuelle Preise prüfen]** | Woche 1 |
-| Gewerbeanmeldung | ca. 15–60 € einmalig **[Annahme, je nach Gemeinde]** | vor der ersten Einnahme |
-| Impressums-Adresse, falls deine Wohnadresse nicht öffentlich sein soll | ca. 5–15 € pro Monat **[Annahme]** | optional |
-| Apple-Entwicklerprogramm | 99 € pro Jahr | erst bei Traktion |
-| **Summe Jahr 1 ohne Apple** | **ca. 100–200 €** | |
-
-Der Server ist Pflicht: Ohne ihn funktionieren Einladungen und Synchronisation nicht, und eine
-WG-App ohne Sync ist eine Einzelspieler-App. Ein deutscher Hoster ist zugleich ein
-Verkaufsargument („Daten liegen in Deutschland“). Die Server-Einrichtung ist vorbereitet
-(`deploy/`, Anleitung in [LAUNCH.md](LAUNCH.md)).
-
-## Was realistisch drin ist
-
-Grobe Größenordnung pro **1.000 aktive WGs** und Jahr – alle Werte **[Annahme]**, zum Ersetzen
-durch echte Zahlen, sobald sie da sind:
-
-| Quelle | Rechnung | pro Jahr |
-| --- | --- | --- |
-| Tarif-Check | ca. 40 % der WGs tragen Strom/Internet ein → ca. 1 Wechselmoment pro Vertrag und Jahr → 5–10 % klicken → 20–30 % schließen ab → 25–80 Abschlüsse × 15–40 € | ca. 400–3.000 € |
-| Plus | 3–5 % zahlen, ca. 17 € nach Store-Gebühr | ca. 500–850 € |
-| **Summe** | | **ca. 1.000–4.000 €** |
-
-Heißt: Mit 1.000 aktiven WGs ist es ein Taschengeld, mit 10.000 ein ordentliches Nebeneinkommen,
-mit einem B2B-Kunden kann sich das schneller verschieben. Weil die laufenden Kosten fast null sind
-und ich die Arbeit am Produkt mache, ist das Risiko klein – aber es ist kein schnelles Geld.
-
-## Stores: Reihenfolge
-
-1. **Web-App auf eigener Domain** (Woche 1). Funktioniert auf jedem Handy, inklusive iPhone
-   („Zum Home-Bildschirm“, Push ab iOS 16.4).
-2. **Google Play über Trusted Web Activity** (Woche 1–4). Neue private Entwicklerkonten müssen vor
-   der Veröffentlichung einen geschlossenen Test mit **mindestens 12 Testern über 14 Tage am Stück**
-   machen **[belegt]** ([Google Play Console Hilfe](https://support.google.com/googleplay/android-developer/answer/14151465)).
-   Das ist kein Hindernis, sondern der erste Vertriebsschritt: 12 Tester = deine ersten 3–4 WGs.
-3. **Apple App Store** (ab Traktion). Braucht 99 €/Jahr und eine native Hülle mit eigenen
-   Funktionen (Capacitor ist vorbereitet), weil Apple reine Website-Verpackungen ablehnt.
-   Bauen geht ohne eigenen Mac über Cloud-Build-Dienste **[offen: Gratis-Kontingente prüfen]**.
-
-Store-Texte, Keywords und die Antworten für Googles Datensicherheits-Formular liegen in
-[store/](store/).
-
-## Marketing ohne Budget
-
-In der Reihenfolge des erwarteten Ertrags:
-
-1. **Der eingebaute WG-Loop.** Jede neue WG lädt 2–4 Leute ein (Link, QR, WhatsApp). Die
-   wichtigste Kennzahl ist deshalb, wie viele WGs mindestens zwei aktive Geräte haben.
-2. **Die 12 Play-Tester** aus Freundeskreis, eigener WG, Uni-Gruppen – echte WGs, echtes Feedback.
-3. **Kurzvideos** (TikTok, Reels, Shorts): WG-Alltagshumor + Bildschirmaufnahme der App, 3 pro
-   Woche. 20 Skripte liegen in [marketing/VIDEOS.md](marketing/VIDEOS.md).
-4. **Uni-Kanäle:** Fachschaften, AStA, Wohnheim-Tutorien, Erstsemester-Gruppen. Vorlagen in
-   [marketing/OUTREACH.md](marketing/OUTREACH.md).
-5. **Communities:** Reddit (r/Studium, r/de, r/germany auf Englisch), mit Mehrwert statt Werbung.
-6. **Suchmaschinen:** „Splitwise Alternative“, „Putzplan WG“, „Kündigungsschreiben Vorlage“ – als
-   Nächstes baue ich frei nutzbare Werkzeugseiten (Kündigungsschreiben-Generator,
-   Putzplan-Vorlage), die auf die App verweisen.
-7. **Tech-Launch:** Show HN / Product Hunt („offline-first, null Abhängigkeiten, Open Source“) –
-   bringt Glaubwürdigkeit und GitHub-Sterne, wenig WGs, aber kostet nichts.
-
-**Timing:** Die WGs vom Wintersemester haben sich gerade gefunden (jetzt), im Januar kommen die
-guten Vorsätze und der Putzplan-Streit, im März/April Sommersemester und Umzüge, im
-September/Oktober der größte Schub.
-
-## Zeitplan
-
-| Woche | Du | Ich (Claude) |
-| --- | --- | --- |
-| **1** (2.–8. Nov) | Domain + Server mieten, Repository-Variablen setzen, Play-Konto anlegen, Gewerbe anmelden, bei Partnerprogramm bewerben | Server- und Store-Paket vorbereiten, Feature-Grafik, Fragen beantworten |
-| **2** | 12 Tester einladen, geschlossenen Test starten, erste 3 Videos | Feedback der Tester einbauen, „WG endgültig löschen“ in der App, Werkzeugseiten für Suchmaschinen |
-| **3–4** | Videos, Uni-Kanäle anschreiben | Fehler beheben, Store-Eintrag feinschleifen |
-| **5** | Antrag auf Veröffentlichung im Play Store, Reddit-Launch | ASO nach ersten Daten anpassen |
-| **6–8** | weiter Videos und Kanäle; Kennzahlen anschauen | je nach Zahlen: Plus bauen oder Vertrieb nachschärfen |
-
-**Entscheidungspunkte nach 8 Wochen:** Unter 50 aktiven WGs → Kanal oder Positionierung ändern,
-nicht noch mehr Funktionen bauen. Ab ca. 300 aktiven WGs → Plus bauen und iOS-App angehen.
-
-## Kennzahlen
-
-Der Server liefert anonyme Summen unter `GET /api/admin/stats` (nur mit `ADMIN_TOKEN`, keine Namen
-oder Inhalte):
-
-| Feld | Bedeutung | wofür |
-| --- | --- | --- |
-| `active.d7` | WGs mit Änderungen in den letzten 7 Tagen | Hauptkennzahl |
-| `withTwoDevices` / `households` | Anteil WGs, die Nestly wirklich gemeinsam nutzen | Aktivierung |
-| `created.d7` | neue WGs pro Woche | Wachstum, Wirkung von Marketing |
-| `contractsByCategory` | eingetragene Verträge je Art | Potenzial des Tarif-Checks |
-
-Dazu kommen Klicks und Abschlüsse im Partner-Dashboard.
-
-## Was nur du machen kannst
-
-1. **Gewerbe anmelden** (meist online bei deiner Gemeinde) und danach den Fragebogen zur
-   steuerlichen Erfassung in ELSTER ausfüllen. Die Kleinunternehmerregelung (§ 19 UStG; seit 2025:
-   Vorjahresumsatz bis 25.000 €, laufendes Jahr bis 100.000 €) erspart dir Umsatzsteuer-Aufwand.
-   Ich bin kein Steuerberater – bei Unsicherheit kurz beim Finanzamt oder einer Beratung nachfragen.
-2. **Domain und Server** mieten und die Repository-Variablen in GitHub setzen (Liste in
-   [LAUNCH.md](LAUNCH.md)). Danach baue und veröffentliche ich alles automatisch.
-3. **Google-Play-Konto** (25 $, Identitätsprüfung) und **Partnerprogramm-Bewerbung**.
-4. **12 Tester** finden.
-5. **Videos** aufnehmen und posten (Skripte und Bildschirmaufnahmen liefere ich).
-6. **Impressum:** Für eine Einnahmen-App brauchst du eine ladungsfähige Anschrift im Impressum.
-   Wenn deine Wohnadresse nicht öffentlich sein soll, gibt es Impressums- bzw. Geschäftsadressen-Dienste.
-
-Alles andere – Code, Store-Texte, Rechtstext-Vorlagen, Server-Konfiguration, Marketingtexte,
-Screenshots, Funktionen für Plus, iOS-Hülle – mache ich.
+| Raus | Warum |
+| --- | --- |
+| Play Store zum Start | 25 $, 12 Tester über 14 Tage, Formulare – lohnt erst mit Nutzern |
+| eigener Server zum Start | 4–6 € im Monat würden „ein paar Euro“ auffressen |
+| Nestly Plus und Bezahlsystem | bringt ohne Nutzer 0 € |
+| Videos, Uni-Mails, Coliving-Anfragen | kosten deine Zeit; bleiben als Option in [marketing/](marketing/) |
 
 ## Risiken und offene Punkte
 
-| Punkt | Warum wichtig | Was tun |
-| --- | --- | --- |
-| **Name „Nestly“** | In den USA laufen zwei Markenanmeldungen „NESTLY“ (u. a. Klasse 42, Software-Dienste, angemeldet Feb. 2026) **[belegt über Drittanbieter, im USPTO-Register prüfen]** ([Markinton](https://markinton.com/trademark/nestly-99640757)) | Vor dem Store-Eintrag im DPMA- und EUIPO-Register nach „Nestly“ in Klasse 9/42 suchen (kostenlos). Ein Namenswechsel ist jetzt billig, später teuer. |
-| Partnerprogramm lässt App-Traffic nicht zu | Tarif-Check bringt dann nichts | anderes Programm oder Web-Werkzeugseiten als Quelle **[offen]** |
-| 12-Tester-Regel | verzögert den Play-Start um mindestens 2 Wochen | sofort starten, Tester = erste Nutzer |
-| Sensible Daten auf dem Server (IBAN, Kundennummern) | Datenschutz und Vertrauen | Hoster in Deutschland, Vertrag zur Auftragsverarbeitung abschließen, Backups verschlüsseln; Ende-zu-Ende-Verschlüsselung steht auf der Roadmap |
-| Rechtstexte | Vorlagen, keine Rechtsberatung | einmal von einem Generator oder einer Beratung gegenlesen lassen |
-| Datenlöschung | Google verlangt für Apps mit Konten einen Löschweg in der App und im Web; ob eine WG ohne E-Mail-Konto darunter fällt, ist unklar **[offen]** | bis zum Produktionsantrag baue ich „WG endgültig löschen“; bis dahin Löschung per E-Mail (steht in der Datenschutzerklärung) |
+| Punkt | Was tun |
+| --- | --- |
+| Partnerprogramm lehnt ab oder schränkt Werbeformen ein **[offen]** | anderes Vergleichsportal; die Seiten funktionieren mit jedem Link |
+| Rechtstexte und Vertragsregeln | Vorlagen, keine Rechtsberatung; die Seiten sind bewusst allgemein und tragen „Angaben ohne Gewähr“ |
+| Steuern | Provisionen sind Einnahmen. Kleinunternehmerregelung (§ 19 UStG; seit 2025: Vorjahr bis 25.000 €, laufendes Jahr bis 100.000 €) spart Umsatzsteuer-Aufwand. Keine Steuerberatung – im Zweifel beim Finanzamt fragen. |
+| Name „Nestly“ | In den USA laufen Markenanmeldungen **[belegt über Drittanbieter]** ([Markinton](https://markinton.com/trademark/nestly-99640757)); vor einer eigenen Domain im DPMA-/EUIPO-Register prüfen |

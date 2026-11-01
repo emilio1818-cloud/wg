@@ -1,0 +1,19 @@
+{
+  "$comment": "Site settings, read by scripts/build.mjs. Environment variables (NESTLY_*) override these values. See docs/LAUNCH.md.",
+  "siteUrl": "https://emilio1818-cloud.github.io/wg/",
+  "serverUrl": "",
+  "operator": {
+    "name": "",
+    "address": "",
+    "email": "",
+    "phone": ""
+  },
+  "hosting": "GitHub Inc. (GitHub Pages) | 88 Colin P. Kelly Jr. Street | San Francisco, CA 94107, USA",
+  "offers": {},
+  "tipUrl": "",
+  "googleSiteVerification": "",
+  "android": {
+    "package": "",
+    "sha256": []
+  }
+}
